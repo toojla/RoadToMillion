@@ -1,8 +1,10 @@
 @page "/account/{AccountId:int}"
 @inject ApiClient Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @using RoadToMillion.Web.Services
 @using RoadToMillion.Web.Models
+@implements IAsyncDisposable
 
 <PageTitle>Account Detail – Road to Million</PageTitle>
 
@@ -27,6 +29,21 @@ else
     @if (!string.IsNullOrWhiteSpace(account.Description))
     {
         <p class="text-muted">@account.Description</p>
+    }
+
+    <!-- Balance Chart -->
+    @if (snapshots.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Balance Over Time</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px;">
+                    <canvas id="balanceChart"></canvas>
+                </div>
+            </div>
+        </div>
     }
 
     <!-- Record new snapshot -->
@@ -82,6 +99,7 @@ else
         </table>
     }
 }
+}
 
 @code {
     [Parameter] public int AccountId { get; set; }
@@ -97,6 +115,14 @@ else
     {
         await LoadAsync();
         loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!loading && snapshots.Any())
+        {
+            await RenderChartAsync();
+        }
     }
 
     private async Task LoadAsync()
@@ -119,10 +145,40 @@ else
             newAmount = 0;
             newDate = DateOnly.FromDateTime(DateTime.Today);
             snapshots = await Api.GetSnapshotsAsync(AccountId) ?? [];
+            await RenderChartAsync();
         }
         catch (HttpRequestException ex)
         {
             snapshotError = ex.Message;
+        }
+    }
+
+    private async Task RenderChartAsync()
+    {
+        if (!snapshots.Any()) return;
+
+        // Sort snapshots by date (ascending for chart)
+        var orderedSnapshots = snapshots.OrderBy(s => s.Date).ToList();
+
+        var labels = orderedSnapshots.Select(s => s.Date.ToString("yyyy-MM-dd")).ToArray();
+        var data = orderedSnapshots.Select(s => (double)s.Amount).ToArray();
+
+        await JS.InvokeVoidAsync("chartHelper.createLineChart", 
+            "balanceChart", 
+            labels, 
+            data, 
+            "Balance (SEK)");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("chartHelper.destroyChart", "balanceChart");
+        }
+        catch
+        {
+            // Ignore errors during disposal
         }
     }
 }

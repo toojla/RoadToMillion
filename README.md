@@ -179,6 +179,20 @@ The `ServiceDefaults` project provides:
 - **Snapshots** - CRUD operations for balance snapshots
 - **Import** - CSV import functionality
 
+### Web Application Features
+
+- **Dashboard** - Overview of all account groups and total portfolio value
+- **Account Management** - Create and manage account groups and accounts
+- **Balance Tracking** - Record balance snapshots for each account
+- **📊 Balance Chart** - Visual timeline chart showing balance changes over time
+  - Interactive Chart.js line chart
+  - Historical balance visualization
+  - Automatically updates when new snapshots are added
+- **CSV Import** - Bulk import accounts and historical balance data
+  - Support for multiple snapshots per account
+  - Date/time specification for historical data
+  - Preview before import with validation
+
 ### CSV Import
 
 The application supports importing financial data via CSV files with the following features:
