@@ -9,10 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// EF Core + SQLite
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-                     ?? "Data Source=./roadtomillion.db"));
+// EF Core + PostgreSQL
+builder.AddNpgsqlDbContext<AppDbContext>("roadtomilliondb");
 
 // CORS – allow the Blazor WASM origin
 builder.Services.AddCors(options =>

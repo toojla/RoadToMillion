@@ -18,10 +18,11 @@ This solution uses a modern distributed architecture orchestrated by .NET Aspire
 - **.NET 10** with C# 14.0
 - **Blazor WebAssembly** for the frontend
 - **ASP.NET Core Web API** with minimal APIs
-- **Entity Framework Core** with SQLite
+- **Entity Framework Core** with PostgreSQL
 - **.NET Aspire** for orchestration and observability
 - **OpenTelemetry** for distributed tracing and metrics
 - **Scalar** for API documentation (development)
+- **pgAdmin** for PostgreSQL database management (development)
 
 ## 📊 Data Model
 
@@ -49,10 +50,12 @@ AccountGroup (e.g., "Investments", "Savings")
 
 ### Database
 
-- **Provider**: SQLite
-- **Database File**: `roadtomillion.db` (created in the API project root)
+- **Provider**: PostgreSQL (via Npgsql)
+- **Orchestration**: Managed by .NET Aspire with automatic connection string injection
+- **Container**: PostgreSQL runs in a Docker container orchestrated by Aspire
 - **Migrations**: Applied automatically on application startup
 - **Cascade Deletes**: Enabled for all relationships
+- **Management**: pgAdmin available for database administration
 
 ## 🚀 Getting Started
 
@@ -76,11 +79,20 @@ AccountGroup (e.g., "Investments", "Savings")
    ```
 
    This will:
+   - Start PostgreSQL in a Docker container
+   - Start pgAdmin for database management
    - Start the API on `https://localhost:7100`
    - Start the Blazor WASM app on `https://localhost:7200`
    - Launch the Aspire Dashboard for monitoring
 
+   **Note**: Docker Desktop must be running for PostgreSQL container orchestration.
+
 3. **Run individually** (Development)
+
+   **Prerequisites**: Start PostgreSQL manually
+   ```bash
+   docker run --name postgres-dev -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:latest
+   ```
 
    Terminal 1 - API:
    ```bash
@@ -100,12 +112,34 @@ AccountGroup (e.g., "Investments", "Savings")
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Data Source=./roadtomillion.db"
+    "roadtomilliondb": "Host=localhost;Database=roadtomilliondb;Username=postgres;Password=postgres"
   }
 }
 ```
 
+**Note**: When running with Aspire, the connection string is automatically injected by the AppHost and doesn't need manual configuration.
+
 **CORS**: Configured to allow requests from `https://localhost:7200`
+
+### PostgreSQL with Aspire
+
+The AppHost configures PostgreSQL with the following setup:
+
+```csharp
+var postgres = builder.AddPostgres("postgres")
+    .WithPgAdmin()
+    .AddDatabase("roadtomilliondb");
+
+var api = builder.AddProject<Projects.RoadToMillion_Api>("api")
+    .WithReference(postgres)
+    .WaitFor(postgres);
+```
+
+**Features**:
+- Automatic PostgreSQL container provisioning
+- pgAdmin included for database management
+- Connection string automatically injected into the API
+- Health checks and observability integration
 
 ### Web Configuration
 
@@ -172,11 +206,26 @@ Access the Aspire Dashboard (typically at `http://localhost:15888`) to view:
 - **Metrics**: Performance and runtime metrics
 - **Logs**: Structured logs from all services
 - **Resources**: Service status and health
+  - PostgreSQL container status
+  - Database connection health
+
+### pgAdmin
+
+When running with Aspire, pgAdmin is automatically started and accessible from the Aspire Dashboard resources page.
+
+**Access**:
+1. Open Aspire Dashboard
+2. Navigate to Resources
+3. Click on the pgAdmin endpoint link
+
+**Default credentials** (if needed):
+- Email: `admin@admin.com`
+- Password: `admin`
 
 ### Health Checks
 
 - **Liveness**: `GET /alive` - Basic application availability
-- **Readiness**: `GET /health` - Detailed health check including database connectivity
+- **Readiness**: `GET /health` - Detailed health check including PostgreSQL database connectivity
 
 ## 🛠️ Development
 
