@@ -1,0 +1,16 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.2">
+
+  <ItemGroup>
+    <ProjectReference Include="..\RoadToMillion.Api\RoadToMillion.Api.csproj" />
+    <ProjectReference Include="..\RoadToMillion.Web\RoadToMillion.Web.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>11f0c9b3-0037-4691-b78a-fe2bd3f72e9f</UserSecretsId>
+  </PropertyGroup>
+
+</Project>

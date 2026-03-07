@@ -1,0 +1,186 @@
+@page "/account-groups"
+@inject ApiClient Api
+@using RoadToMillion.Web.Services
+@using RoadToMillion.Web.Models
+
+<PageTitle>Account Groups – Road to Million</PageTitle>
+
+<h1>Account Groups</h1>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <!-- Create Group Form -->
+    <div class="card mb-4">
+        <div class="card-header">Add Account Group</div>
+        <div class="card-body">
+            <div class="d-flex gap-2 align-items-start">
+                <input class="form-control" placeholder="Group name (e.g. Avanza)"
+                       @bind="newGroupName" @bind:event="oninput" />
+                <button class="btn btn-primary" @onclick="CreateGroupAsync" disabled="@string.IsNullOrWhiteSpace(newGroupName)">
+                    Add
+                </button>
+            </div>
+            @if (groupError is not null)
+            {
+                <div class="text-danger mt-1">@groupError</div>
+            }
+        </div>
+    </div>
+
+    <!-- Groups List -->
+    @foreach (var group in groups)
+    {
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>@group.Name</strong>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-secondary">@group.CurrentTotal.ToString("N0") SEK</span>
+                    <button class="btn btn-sm btn-outline-danger"
+                            @onclick="() => DeleteGroupAsync(group)">Delete</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Accounts within group -->
+                @if (accounts.TryGetValue(group.Id, out var accs))
+                {
+                    @if (accs.Any())
+                    {
+                        <table class="table table-sm mb-2">
+                            <thead>
+                                <tr><th>Account</th><th>Description</th><th class="text-end">Balance</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var acc in accs)
+                                {
+                                    <tr>
+                                        <td><a href="account/@acc.Id">@acc.Name</a></td>
+                                        <td>@acc.Description</td>
+                                        <td class="text-end">
+                                            @(acc.HasSnapshots ? acc.CurrentBalance.ToString("N0") + " SEK" : "No snapshots yet")
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    @onclick="() => DeleteAccountAsync(group.Id, acc)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No accounts yet.</p>
+                    }
+                }
+
+                <!-- Add account form per group -->
+                <div class="d-flex gap-2 align-items-start mt-2">
+                    <input class="form-control form-control-sm" placeholder="Account name"
+                           @bind="newAccountName[group.Id]" @bind:event="oninput" />
+                    <input class="form-control form-control-sm" placeholder="Description (optional)"
+                           @bind="newAccountDesc[group.Id]" @bind:event="oninput" />
+                    <button class="btn btn-sm btn-outline-primary"
+                            @onclick="() => CreateAccountAsync(group.Id)"
+                            disabled="@(!newAccountName.TryGetValue(group.Id, out var n) || string.IsNullOrWhiteSpace(n))">
+                        Add Account
+                    </button>
+                </div>
+                @if (accountErrors.TryGetValue(group.Id, out var err))
+                {
+                    <div class="text-danger mt-1">@err</div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (!groups.Any())
+    {
+        <p class="text-muted">No account groups yet. Create one above.</p>
+    }
+}
+
+@code {
+    private List<AccountGroupResponse> groups = [];
+    private Dictionary<int, List<AccountResponse>> accounts = [];
+    private Dictionary<int, string?> newAccountName = [];
+    private Dictionary<int, string?> newAccountDesc = [];
+    private Dictionary<int, string?> accountErrors = [];
+    private string newGroupName = string.Empty;
+    private string? groupError;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGroupsAsync();
+        loading = false;
+    }
+
+    private async Task LoadGroupsAsync()
+    {
+        groups = await Api.GetAccountGroupsAsync() ?? [];
+        foreach (var g in groups)
+        {
+            accounts[g.Id] = await Api.GetAccountsAsync(g.Id) ?? [];
+            newAccountName.TryAdd(g.Id, string.Empty);
+            newAccountDesc.TryAdd(g.Id, string.Empty);
+        }
+    }
+
+    private async Task CreateGroupAsync()
+    {
+        groupError = null;
+        try
+        {
+            var result = await Api.CreateAccountGroupAsync(newGroupName);
+            if (result is not null)
+            {
+                newGroupName = string.Empty;
+                await LoadGroupsAsync();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            groupError = ex.StatusCode == System.Net.HttpStatusCode.Conflict
+                ? "A group with this name already exists."
+                : "Failed to create group.";
+        }
+    }
+
+    private async Task DeleteGroupAsync(AccountGroupResponse group)
+    {
+        await Api.DeleteAccountGroupAsync(group.Id);
+        await LoadGroupsAsync();
+    }
+
+    private async Task CreateAccountAsync(int groupId)
+    {
+        accountErrors[groupId] = null;
+        try
+        {
+            var name = newAccountName.GetValueOrDefault(groupId) ?? string.Empty;
+            var desc = newAccountDesc.GetValueOrDefault(groupId);
+            await Api.CreateAccountAsync(groupId, name, string.IsNullOrWhiteSpace(desc) ? null : desc);
+            newAccountName[groupId] = string.Empty;
+            newAccountDesc[groupId] = string.Empty;
+            accounts[groupId] = await Api.GetAccountsAsync(groupId) ?? [];
+        }
+        catch (HttpRequestException ex)
+        {
+            accountErrors[groupId] = ex.StatusCode == System.Net.HttpStatusCode.Conflict
+                ? "An account with this name already exists in this group."
+                : "Failed to create account.";
+        }
+    }
+
+    private async Task DeleteAccountAsync(int groupId, AccountResponse acc)
+    {
+        await Api.DeleteAccountAsync(acc.Id);
+        accounts[groupId] = await Api.GetAccountsAsync(groupId) ?? [];
+        // Reload groups to get updated totals
+        groups = await Api.GetAccountGroupsAsync() ?? [];
+    }
+}

@@ -1,0 +1,82 @@
+﻿@page "/"
+@inject ApiClient Api
+@using RoadToMillion.Web.Services
+@using RoadToMillion.Web.Models
+
+<PageTitle>Dashboard – Road to Million</PageTitle>
+
+<h1>Portfolio Dashboard</h1>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (summary is null)
+{
+    <div class="alert alert-warning">
+        Could not load portfolio data. Is the API running?
+    </div>
+}
+else if (summary.CurrentTotal == 0 && !summary.Groups.Any())
+{
+    <div class="alert alert-info">
+        <strong>No accounts yet.</strong> <a href="account-groups">Add an account group</a> to get started.
+    </div>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Current Total</h5>
+            <p class="display-5">@summary.CurrentTotal.ToString("N0") SEK</p>
+            <div class="progress mb-2" style="height: 24px;">
+                <div class="progress-bar bg-success" role="progressbar"
+                     style="width: @summary.ProgressPercentage%"
+                     aria-valuenow="@summary.ProgressPercentage" aria-valuemin="0" aria-valuemax="100">
+                    @summary.ProgressPercentage.ToString("F1")%
+                </div>
+            </div>
+            <p class="text-muted">
+                @summary.RemainingAmount.ToString("N0") SEK remaining to reach
+                @summary.GoalAmount.ToString("N0") SEK
+            </p>
+        </div>
+    </div>
+
+    <h4>Account Groups</h4>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Group</th>
+                <th class="text-end">Current Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var group in summary.Groups)
+            {
+                <tr>
+                    <td>@group.Name</td>
+                    <td class="text-end">@group.CurrentTotal.ToString("N0") SEK</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr class="fw-bold">
+                <td>Total</td>
+                <td class="text-end">@summary.CurrentTotal.ToString("N0") SEK</td>
+            </tr>
+        </tfoot>
+    </table>
+}
+
+@code {
+    private PortfolioSummary? summary;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        summary = await Api.GetPortfolioSummaryAsync();
+        loading = false;
+    }
+}
+

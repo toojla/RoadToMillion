@@ -1,0 +1,128 @@
+@page "/account/{AccountId:int}"
+@inject ApiClient Api
+@inject NavigationManager Nav
+@using RoadToMillion.Web.Services
+@using RoadToMillion.Web.Models
+
+<PageTitle>Account Detail – Road to Million</PageTitle>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (account is null)
+{
+    <div class="alert alert-warning">Account not found.</div>
+}
+else
+{
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="account-groups">Accounts</a></li>
+            <li class="breadcrumb-item active">@account.Name</li>
+        </ol>
+    </nav>
+
+    <h1>@account.Name</h1>
+    @if (!string.IsNullOrWhiteSpace(account.Description))
+    {
+        <p class="text-muted">@account.Description</p>
+    }
+
+    <!-- Record new snapshot -->
+    <div class="card mb-4">
+        <div class="card-header">Record Balance</div>
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Amount (SEK)</label>
+                    <input type="number" class="form-control" @bind="newAmount" min="0.01" step="0.01" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-control" @bind="newDate" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" @onclick="RecordSnapshotAsync">Save</button>
+                </div>
+            </div>
+            @if (snapshotError is not null)
+            {
+                <div class="text-danger mt-2">@snapshotError</div>
+            }
+        </div>
+    </div>
+
+    <!-- Snapshot history -->
+    <h4>Balance History</h4>
+    @if (!snapshots.Any())
+    {
+        <p class="text-muted">No snapshots recorded yet.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th class="text-end">Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var snap in snapshots)
+                {
+                    <tr class="@(snap.IsMostRecent ? "table-success" : "")">
+                        <td>@snap.Date.ToString("yyyy-MM-dd")</td>
+                        <td class="text-end">@snap.Amount.ToString("N0") SEK</td>
+                        <td>@(snap.IsMostRecent ? "✓ Current" : "")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    [Parameter] public int AccountId { get; set; }
+
+    private AccountResponse? account;
+    private List<SnapshotResponse> snapshots = [];
+    private decimal newAmount;
+    private DateOnly newDate = DateOnly.FromDateTime(DateTime.Today);
+    private string? snapshotError;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        loading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        account = await Api.GetAccountAsync(AccountId);
+        snapshots = await Api.GetSnapshotsAsync(AccountId) ?? [];
+    }
+
+    private async Task RecordSnapshotAsync()
+    {
+        snapshotError = null;
+        if (newAmount <= 0)
+        {
+            snapshotError = "Amount must be greater than zero.";
+            return;
+        }
+        try
+        {
+            await Api.CreateSnapshotAsync(AccountId, newAmount, newDate);
+            newAmount = 0;
+            newDate = DateOnly.FromDateTime(DateTime.Today);
+            snapshots = await Api.GetSnapshotsAsync(AccountId) ?? [];
+        }
+        catch (HttpRequestException ex)
+        {
+            snapshotError = ex.Message;
+        }
+    }
+}

@@ -1,0 +1,65 @@
+## .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.cache
+*.log
+
+## Build artifacts
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]uild/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+!**/packages/build/
+
+## Aspire
+.aspire/
+
+## SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+## Environment / secrets
+.env
+.env.*
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+## OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+## IDE
+.idea/
+*.swp
+*.swo
+*~
+
+## Specs / tools (keep)
+!specs/
+!.specify/
+!.github/
