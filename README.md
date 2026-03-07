@@ -127,6 +127,7 @@ The AppHost configures PostgreSQL with the following setup:
 
 ```csharp
 var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume()  // Persists database data across container restarts
     .WithPgAdmin()
     .AddDatabase("roadtomilliondb");
 
@@ -137,9 +138,16 @@ var api = builder.AddProject<Projects.RoadToMillion_Api>("api")
 
 **Features**:
 - Automatic PostgreSQL container provisioning
+- **Persistent data storage** with Docker volumes (data survives container restarts)
 - pgAdmin included for database management
 - Connection string automatically injected into the API
 - Health checks and observability integration
+
+**Data Persistence**:
+- Database data is stored in a Docker volume named `<app-name>-postgres-data`
+- Data persists even when you stop or restart the AppHost
+- To view volumes: `docker volume ls`
+- To remove the volume (⚠️ deletes all data): `docker volume rm <volume-name>`
 
 ### Web Configuration
 
@@ -178,24 +186,41 @@ The application supports importing financial data via CSV files with the followi
 **Required Columns**:
 - `AccountGroup` - The account group name
 - `AccountName` - The account name
+- `Balance` - Balance amount (required for snapshots)
 
 **Optional Columns**:
-- `Balance` - Initial balance amount
+- `Date` - Date/time for the balance snapshot (if not provided, current date/time is used)
 
 **Features**:
 - Auto-detection of CSV delimiter (comma, semicolon, tab)
 - Case-insensitive column matching
-- Duplicate detection
+- **Multiple snapshots per account** - Same account can appear multiple times with different dates
 - Row-level validation with warnings
 - Preview before import
+- Optional date/time support with multiple format detection
+- **Historical data import** - Add balance snapshots to existing accounts
 
-**Example CSV**:
+**Example CSV** (Multiple snapshots for the same account):
 ```csv
-AccountGroup,AccountName,Balance
-Retirement,401k,50000.00
-Retirement,Roth IRA,25000.00
+AccountGroup,AccountName,Balance,Date
+Swedbank,Långtid,50000,2024-01-15
+Swedbank,Långtid,25000,2025-01-15 10:30:00
+Retirement,401k,75000.00,2024-06-01
+Retirement,401k,78000.00,2024-12-01
 Savings,Emergency Fund,10000.00
 ```
+
+**Import Behavior**:
+- **New accounts**: Creates the account group (if needed), account, and balance snapshot(s)
+- **Existing accounts**: Adds new balance snapshot(s) without recreating the account
+- **Multiple rows for same account**: Each row creates a separate balance snapshot
+- This allows you to import historical balance data or update existing accounts with new balances
+
+**Date Format Support**:
+- ISO format: `2024-01-15` or `2024-01-15 10:30:00`
+- Local formats (Swedish): `2024-01-15` or `15/01/2024`
+- All dates are treated as UTC (timezone-aware) for consistency with PostgreSQL
+- If Date is not provided or invalid, the current UTC date/time is used
 
 ## 🔍 Observability
 

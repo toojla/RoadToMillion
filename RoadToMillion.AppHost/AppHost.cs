@@ -1,6 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume()  // Persists database data across container restarts
     .WithPgAdmin()
     .AddDatabase("roadtomilliondb");
 

@@ -66,14 +66,15 @@ public class CsvImportService(AppDbContext db)
         var groupCol = FindHeader("AccountGroup")!;
         var nameCol = FindHeader("AccountName")!;
         var balanceCol = FindHeader("Balance");
+        var dateCol = FindHeader("Date");
 
         // Load existing data for conflict detection
         var existingGroups = await db.AccountGroups
             .Include(g => g.Accounts)
             .ToDictionaryAsync(g => g.Name.ToLower(), g => g);
 
-        // Parse rows
-        var groupDict = new Dictionary<string, (bool AlreadyExists, Dictionary<string, (decimal? Balance, bool AlreadyExists)> Accounts)>(StringComparer.OrdinalIgnoreCase);
+        // Parse rows - now tracking snapshots instead of just accounts
+        var groupDict = new Dictionary<string, (bool AlreadyExists, Dictionary<string, AccountImportData> Accounts)>(StringComparer.OrdinalIgnoreCase);
         var warnings = new List<ImportWarning>();
         int rowNumber = 0;
         int rowsTotal = 0;
@@ -116,18 +117,42 @@ public class CsvImportService(AppDbContext db)
                 }
             }
 
+            // Parse optional date
+            DateTime? snapshotDate = null;
+            if (dateCol is not null)
+            {
+                var raw = csv.GetField(dateCol)?.Trim();
+                if (!string.IsNullOrWhiteSpace(raw))
+                {
+                    // Try multiple date formats and convert to UTC
+                    // Use AssumeUniversal | AdjustToUniversal to treat parsed dates as UTC
+                    if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var d) ||
+                        DateTime.TryParse(raw, new CultureInfo("sv-SE"), DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out d))
+                    {
+                        // Ensure the DateTime is UTC (in case parsing didn't set it)
+                        snapshotDate = DateTime.SpecifyKind(d, DateTimeKind.Utc);
+                    }
+                    else
+                    {
+                        warnings.Add(new ImportWarning(rowNumber, "Date",
+                            $"Invalid date format '{raw}'; will use current date/time instead.", "Warning"));
+                    }
+                }
+            }
+
+            // Skip rows without balance
+            if (balance is null || balance <= 0)
+            {
+                warnings.Add(new ImportWarning(rowNumber, "Balance",
+                    "Balance is missing or zero; row will be skipped.", "Warning"));
+                rowsSkipped++;
+                continue;
+            }
+
             if (!groupDict.TryGetValue(groupName, out var groupEntry))
             {
                 var groupAlreadyExists = existingGroups.ContainsKey(groupName.ToLower());
-                groupDict[groupName] = groupEntry = (groupAlreadyExists, new Dictionary<string, (decimal?, bool)>(StringComparer.OrdinalIgnoreCase));
-            }
-
-            if (groupEntry.Accounts.ContainsKey(accountName))
-            {
-                warnings.Add(new ImportWarning(rowNumber, "AccountName",
-                    $"Account '{accountName}' appears more than once in group '{groupName}' in the file; duplicate row will be skipped.", "Warning"));
-                rowsSkipped++;
-                continue;
+                groupDict[groupName] = groupEntry = (groupAlreadyExists, new Dictionary<string, AccountImportData>(StringComparer.OrdinalIgnoreCase));
             }
 
             // Check if account already exists in DB
@@ -135,17 +160,14 @@ public class CsvImportService(AppDbContext db)
             if (existingGroups.TryGetValue(groupName.ToLower(), out var existingGroup))
                 accountAlreadyExists = existingGroup.Accounts.Any(a => a.Name.Equals(accountName, StringComparison.OrdinalIgnoreCase));
 
-            if (accountAlreadyExists)
+            // Add or update account entry with snapshot
+            if (!groupEntry.Accounts.TryGetValue(accountName, out var accountData))
             {
-                warnings.Add(new ImportWarning(null, null,
-                    $"Account '{accountName}' already exists in group '{groupName}' and will be skipped.", "Info"));
-                groupEntry.Accounts[accountName] = (balance, true);
-                rowsSkipped++;
+                accountData = new AccountImportData(accountName, accountAlreadyExists);
+                groupEntry.Accounts[accountName] = accountData;
             }
-            else
-            {
-                groupEntry.Accounts[accountName] = (balance, false);
-            }
+
+            accountData.Snapshots.Add(new SnapshotImportData(balance.Value, snapshotDate));
         }
 
         if (rowsTotal == 0)
@@ -155,8 +177,11 @@ public class CsvImportService(AppDbContext db)
         var groups = groupDict.Select(kvp =>
         {
             var accounts = kvp.Value.Accounts.Select(a =>
-                new ImportAccountPreview(a.Key, a.Value.Balance, a.Value.AlreadyExists, a.Value.AlreadyExists))
-                .ToList();
+                new ImportAccountPreview(
+                    a.Key,
+                    a.Value.AlreadyExists,
+                    a.Value.Snapshots.Select(s => new ImportSnapshotPreview(s.Amount, s.SnapshotDate)).ToList()
+                )).ToList();
             return new ImportGroupPreview(kvp.Key, kvp.Value.AlreadyExists, accounts);
         }).ToList();
 
@@ -166,89 +191,96 @@ public class CsvImportService(AppDbContext db)
 
     public async Task<ImportResult> ExecuteImportAsync(ImportPreview preview)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync();
-        try
+        var strategy = db.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
         {
-            var now = DateTime.UtcNow;
-            var today = DateOnly.FromDateTime(now);
-            int groupsCreated = 0, accountsCreated = 0, snapshotsCreated = 0, rowsSkipped = 0;
-            var skipReasons = new List<ImportWarning>();
-
-            // Load existing groups once
-            var existingGroups = await db.AccountGroups
-                .Include(g => g.Accounts)
-                .ToDictionaryAsync(g => g.Name.ToLower(), g => g);
-
-            foreach (var groupPreview in preview.Groups)
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            try
             {
-                Models.AccountGroup group;
-                if (existingGroups.TryGetValue(groupPreview.Name.ToLower(), out var existingGroup))
-                {
-                    group = existingGroup;
-                }
-                else
-                {
-                    group = new Models.AccountGroup { Name = groupPreview.Name };
-                    db.AccountGroups.Add(group);
-                    await db.SaveChangesAsync(); // flush to get Id
-                    groupsCreated++;
-                    existingGroup = group;
-                    existingGroups[group.Name.ToLower()] = group;
-                }
+                var now = DateTime.UtcNow;
+                int groupsCreated = 0, accountsCreated = 0, snapshotsCreated = 0;
+                var skipReasons = new List<ImportWarning>();
 
-                foreach (var accountPreview in groupPreview.Accounts)
+                // Load existing groups once
+                var existingGroups = await db.AccountGroups
+                    .Include(g => g.Accounts)
+                    .ToDictionaryAsync(g => g.Name.ToLower(), g => g);
+
+                foreach (var groupPreview in preview.Groups)
                 {
-                    if (accountPreview.WillBeSkipped)
+                    Models.AccountGroup group;
+                    Dictionary<string, Models.Account> accountDict;
+
+                    if (existingGroups.TryGetValue(groupPreview.Name.ToLower(), out var existingGroup))
                     {
-                        rowsSkipped++;
-                        skipReasons.Add(new ImportWarning(null, null,
-                            $"Account '{accountPreview.Name}' in group '{groupPreview.Name}' was skipped.", "Info"));
-                        continue;
+                        group = existingGroup;
+                        accountDict = existingGroup.Accounts.ToDictionary(a => a.Name.ToLower(), a => a, StringComparer.OrdinalIgnoreCase);
+                    }
+                    else
+                    {
+                        group = new Models.AccountGroup { Name = groupPreview.Name };
+                        db.AccountGroups.Add(group);
+                        await db.SaveChangesAsync(); // flush to get Id
+                        groupsCreated++;
+                        accountDict = new Dictionary<string, Models.Account>(StringComparer.OrdinalIgnoreCase);
                     }
 
-                    // Double-check in DB (conflict guard)
-                    var accountExists = existingGroup.Accounts
-                        .Any(a => a.Name.Equals(accountPreview.Name, StringComparison.OrdinalIgnoreCase));
-                    if (accountExists)
+                    foreach (var accountPreview in groupPreview.Accounts)
                     {
-                        rowsSkipped++;
-                        skipReasons.Add(new ImportWarning(null, null,
-                            $"Account '{accountPreview.Name}' already exists in group '{groupPreview.Name}' and was skipped.", "Info"));
-                        continue;
-                    }
+                        Models.Account account;
 
-                    var account = new Models.Account
-                    {
-                        AccountGroupId = group.Id,
-                        Name = accountPreview.Name
-                    };
-                    db.Accounts.Add(account);
-                    await db.SaveChangesAsync();
-                    accountsCreated++;
-
-                    if (accountPreview.InitialBalance is { } bal && bal > 0)
-                    {
-                        db.BalanceSnapshots.Add(new Models.BalanceSnapshot
+                        if (accountDict.TryGetValue(accountPreview.Name, out var existingAccount))
                         {
-                            AccountId = account.Id,
-                            Amount = bal,
-                            Date = today,
-                            RecordedAt = now
-                        });
-                        await db.SaveChangesAsync();
-                        snapshotsCreated++;
+                            // Account exists - we'll add snapshots to it
+                            account = existingAccount;
+                        }
+                        else
+                        {
+                            // Create new account
+                            account = new Models.Account
+                            {
+                                AccountGroupId = group.Id,
+                                Name = accountPreview.Name
+                            };
+                            db.Accounts.Add(account);
+                            await db.SaveChangesAsync();
+                            accountsCreated++;
+                            accountDict[accountPreview.Name] = account;
+                        }
+
+                        // Add all snapshots for this account
+                        foreach (var snapshotPreview in accountPreview.Snapshots)
+                        {
+                            var snapshotDateTime = snapshotPreview.SnapshotDate ?? now;
+                            var snapshotDateOnly = DateOnly.FromDateTime(snapshotDateTime);
+
+                            db.BalanceSnapshots.Add(new Models.BalanceSnapshot
+                            {
+                                AccountId = account.Id,
+                                Amount = snapshotPreview.Amount,
+                                Date = snapshotDateOnly,
+                                RecordedAt = snapshotDateTime
+                            });
+                            snapshotsCreated++;
+                        }
+
+                        if (accountPreview.Snapshots.Count > 0)
+                        {
+                            await db.SaveChangesAsync();
+                        }
                     }
                 }
-            }
 
-            await transaction.CommitAsync();
-            return new ImportResult(groupsCreated, accountsCreated, snapshotsCreated, rowsSkipped, skipReasons, now);
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                await transaction.CommitAsync();
+                return new ImportResult(groupsCreated, accountsCreated, snapshotsCreated, 0, skipReasons, now);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
     }
 
     private static string DetectDelimiter(string firstLine)
@@ -274,5 +306,15 @@ public class CsvImportService(AppDbContext db)
         return count;
     }
 }
+
+// Helper classes for tracking import data
+internal class AccountImportData(string name, bool alreadyExists)
+{
+    public string Name { get; } = name;
+    public bool AlreadyExists { get; } = alreadyExists;
+    public List<SnapshotImportData> Snapshots { get; } = new();
+}
+
+internal record SnapshotImportData(decimal Amount, DateTime? SnapshotDate);
 
 public class ImportValidationException(string message) : Exception(message);

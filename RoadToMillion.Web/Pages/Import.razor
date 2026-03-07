@@ -31,8 +31,9 @@ else if (preview is null)
     <!-- Step 1: File Selection -->
     <div class="card mb-4">
         <div class="card-body">
-            <p>Upload a CSV file with your account information. Required columns: <code>AccountGroup</code>, <code>AccountName</code>. Optional: <code>Balance</code>.</p>
+            <p>Upload a CSV file with your account balance snapshots. Required columns: <code>AccountGroup</code>, <code>AccountName</code>, <code>Balance</code>. Optional: <code>Date</code>.</p>
             <p class="text-muted">Supported delimiters: comma, semicolon, tab (auto-detected).</p>
+            <p class="text-muted"><strong>Note:</strong> You can import multiple snapshots for the same account by including multiple rows with different dates.</p>
             <InputFile class="form-control mb-2" OnChange="OnFileSelected" accept=".csv,text/csv,text/plain" />
             @if (fileError is not null)
             {
@@ -73,37 +74,65 @@ else
                 @group.Name
                 @if (group.AlreadyExists)
                 {
-                    <span class="badge bg-warning text-dark ms-2">Already exists – will add new accounts only</span>
+                    <span class="badge bg-info text-dark ms-2">Existing group – will add snapshots to accounts</span>
                 }
             </div>
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
                     <thead>
-                        <tr><th>Account</th><th class="text-end">Initial Balance</th><th>Status</th></tr>
+                        <tr><th>Account</th><th class="text-end">Snapshots</th><th class="text-end">Total Balance</th><th>Status</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var acc in group.Accounts)
                         {
-                            <tr class="@(acc.WillBeSkipped ? "table-secondary text-muted" : "")">
+                            var totalBalance = acc.Snapshots?.Sum(s => s.Amount) ?? 0;
+                            var hasSnapshots = acc.Snapshots?.Count > 0;
+                            <tr>
                                 <td>@acc.Name</td>
                                 <td class="text-end">
-                                    @(acc.InitialBalance.HasValue ? acc.InitialBalance.Value.ToString("N0") + " SEK" : "—")
-                                </td>
-                                <td>
-                                    @if (acc.WillBeSkipped)
+                                    @if (hasSnapshots)
                                     {
-                                        <span class="badge bg-secondary">Skipped</span>
-                                    }
-                                    else if (acc.AlreadyExists)
-                                    {
-                                        <span class="badge bg-warning text-dark">Already exists</span>
+                                        <span class="badge bg-info">@acc.Snapshots!.Count snapshot(s)</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-success">Will be created</span>
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @(totalBalance > 0 ? totalBalance.ToString("N0") + " SEK" : "—")
+                                </td>
+                                <td>
+                                    @if (acc.AlreadyExists)
+                                    {
+                                        <span class="badge bg-warning text-dark">Existing account</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">New account</span>
                                     }
                                 </td>
                             </tr>
+                            @if (hasSnapshots && acc.Snapshots!.Count > 1)
+                            {
+                                <tr class="table-light">
+                                    <td colspan="4" class="ps-5 small">
+                                        <strong>Snapshot details:</strong>
+                                        <ul class="mb-0 mt-1">
+                                            @foreach (var snapshot in acc.Snapshots.OrderBy(s => s.SnapshotDate ?? DateTime.MaxValue))
+                                            {
+                                                <li>
+                                                    @snapshot.Amount.ToString("N0") SEK 
+                                                    @if (snapshot.SnapshotDate.HasValue)
+                                                    {
+                                                        <span class="text-muted">— @snapshot.SnapshotDate.Value.ToString("yyyy-MM-dd HH:mm")</span>
+                                                    }
+                                                </li>
+                                            }
+                                        </ul>
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                 </table>

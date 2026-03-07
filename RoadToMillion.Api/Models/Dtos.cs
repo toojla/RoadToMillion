@@ -27,9 +27,19 @@ public record SnapshotResponse(int Id, decimal Amount, DateOnly Date, DateTime R
 
 public record ImportWarning(int? RowNumber, string? Field, string Message, string Severity);
 
-public record ImportAccountPreview(string Name, decimal? InitialBalance, bool AlreadyExists, bool WillBeSkipped);
+public record ImportSnapshotPreview(decimal Amount, DateTime? SnapshotDate);
 
-public record ImportGroupPreview(string Name, bool AlreadyExists, List<ImportAccountPreview> Accounts);
+public record ImportAccountPreview(string Name, bool AlreadyExists, List<ImportSnapshotPreview> Snapshots)
+{
+    // Ensure Snapshots is never null for JSON deserialization
+    public List<ImportSnapshotPreview> Snapshots { get; init; } = Snapshots ?? new List<ImportSnapshotPreview>();
+}
+
+public record ImportGroupPreview(string Name, bool AlreadyExists, List<ImportAccountPreview> Accounts)
+{
+    // Ensure Accounts is never null for JSON deserialization
+    public List<ImportAccountPreview> Accounts { get; init; } = Accounts ?? new List<ImportAccountPreview>();
+}
 
 public record ImportPreview(
     List<ImportGroupPreview> Groups,

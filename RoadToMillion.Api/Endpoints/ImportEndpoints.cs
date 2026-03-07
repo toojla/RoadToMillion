@@ -24,7 +24,9 @@ public static class ImportEndpoints
 
         app.MapPost("/api/import/confirm", async (ImportPreview preview, CsvImportService importService, AppDbContext db) =>
         {
-            if (preview.Groups.All(g => g.Accounts.All(a => a.WillBeSkipped)))
+            // Validate that we have groups, accounts, and snapshots to import
+            if (preview?.Groups == null || preview.Groups.Count == 0 || 
+                preview.Groups.All(g => g.Accounts == null || g.Accounts.Count == 0 || g.Accounts.All(a => a.Snapshots == null || a.Snapshots.Count == 0)))
                 return Results.BadRequest(new { errors = new { body = new[] { "No valid records to import." } }, status = 400 });
 
             // Server-side conflict check: any group not marked alreadyExists that now exists in DB?
