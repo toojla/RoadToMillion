@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RoadToMillion.Api.Data;
 using RoadToMillion.Api.Endpoints;
 using RoadToMillion.Api.Services;
+using RoadToMillion.ServiceDefaults;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
