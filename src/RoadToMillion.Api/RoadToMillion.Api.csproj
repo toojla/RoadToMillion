@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RoadToMillion.ServiceDefaults\RoadToMillion.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\orchestration\RoadToMillion.ServiceDefaults\RoadToMillion.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

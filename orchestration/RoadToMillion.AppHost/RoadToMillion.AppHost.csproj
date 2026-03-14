@@ -1,8 +1,8 @@
 <Project Sdk="Aspire.AppHost.Sdk/13.1.2">
 
   <ItemGroup>
-    <ProjectReference Include="..\RoadToMillion.Api\RoadToMillion.Api.csproj" />
-    <ProjectReference Include="..\RoadToMillion.Web\RoadToMillion.Web.csproj" />
+    <ProjectReference Include="..\..\src\RoadToMillion.Api\RoadToMillion.Api.csproj" />
+    <ProjectReference Include="..\..\src\RoadToMillion.Web\RoadToMillion.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

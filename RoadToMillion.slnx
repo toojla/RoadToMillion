@@ -1,6 +1,8 @@
 <Solution>
-  <Project Path="RoadToMillion.AppHost/RoadToMillion.AppHost.csproj" />
-  <Project Path="RoadToMillion.ServiceDefaults/RoadToMillion.ServiceDefaults.csproj" />
-  <Project Path="RoadToMillion.Api/RoadToMillion.Api.csproj" />
-  <Project Path="RoadToMillion.Web/RoadToMillion.Web.csproj" />
+  <Folder Name="/Orchestration/">
+    <Project Path="orchestration/RoadToMillion.AppHost/RoadToMillion.AppHost.csproj" />
+    <Project Path="orchestration/RoadToMillion.ServiceDefaults/RoadToMillion.ServiceDefaults.csproj" />
+  </Folder>
+  <Project Path="src/RoadToMillion.Api/RoadToMillion.Api.csproj" />
+  <Project Path="src/RoadToMillion.Web/RoadToMillion.Web.csproj" />
 </Solution>
