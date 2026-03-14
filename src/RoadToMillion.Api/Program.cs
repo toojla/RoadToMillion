@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using RoadToMillion.Api.Configuration;
 using RoadToMillion.Api.Data;
 using RoadToMillion.Api.Endpoints;
-using RoadToMillion.Api.Services;
 using RoadToMillion.ServiceDefaults;
 using Scalar.AspNetCore;
 
@@ -9,18 +9,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// EF Core + PostgreSQL
-builder.AddNpgsqlDbContext<AppDbContext>("roadtomilliondb");
+// Database
+builder.AddDatabase();
 
-// CORS – allow the Blazor WASM origin
-builder.Services.AddCors(options =>
-    options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("https://localhost:7200")
-              .AllowAnyMethod()
-              .AllowAnyHeader()));
+// CORS
+builder.Services.AddCorsPolicy();
 
-// Services
-builder.Services.AddScoped<CsvImportService>();
+// Application Services
+builder.Services.AddApplicationServices();
 
 // OpenAPI / Swagger
 builder.Services.AddOpenApi();
