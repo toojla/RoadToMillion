@@ -19,7 +19,7 @@ namespace RoadToMillion.UnitTests.Services;
 public class CsvImportServiceTests : IDisposable
 {
     private readonly AppDbContext _db;
-    private readonly CsvImportService _service;
+    private readonly CsvImportService _sut;
 
     public CsvImportServiceTests()
     {
@@ -29,7 +29,7 @@ public class CsvImportServiceTests : IDisposable
             .Options;
 
         _db = new AppDbContext(options);
-        _service = new CsvImportService(_db);
+        _sut = new CsvImportService(_db);
     }
 
     public void Dispose()
@@ -49,7 +49,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.ShouldNotBeNull();
@@ -75,7 +75,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.ShouldNotBeNull();
@@ -91,7 +91,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.ShouldNotBeNull();
@@ -106,7 +106,7 @@ public class CsvImportServiceTests : IDisposable
 
         // Act & Assert
         var exception = await Should.ThrowAsync<ImportValidationException>(
-            async () => await _service.ParsePreviewAsync(file));
+            async () => await _sut.ParsePreviewAsync(file));
         exception.Message.ShouldContain("File type not supported");
     }
 
@@ -122,7 +122,7 @@ public class CsvImportServiceTests : IDisposable
 
         // Act & Assert
         var exception = await Should.ThrowAsync<ImportValidationException>(
-            async () => await _service.ParsePreviewAsync(file));
+            async () => await _sut.ParsePreviewAsync(file));
         exception.Message.ShouldContain("Required columns are missing");
         exception.Message.ShouldContain("AccountName");
     }
@@ -138,7 +138,7 @@ public class CsvImportServiceTests : IDisposable
 
         // Act & Assert
         var exception = await Should.ThrowAsync<ImportValidationException>(
-            async () => await _service.ParsePreviewAsync(file));
+            async () => await _sut.ParsePreviewAsync(file));
         exception.Message.ShouldContain("empty or contains no data rows");
     }
 
@@ -154,7 +154,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.RowsTotal.ShouldBe(2);
@@ -175,7 +175,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.RowsSkipped.ShouldBe(1);
@@ -195,7 +195,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.RowsSkipped.ShouldBe(1);
@@ -214,7 +214,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.RowsSkipped.ShouldBe(1);
@@ -232,7 +232,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.RowsValid.ShouldBe(1);
@@ -253,7 +253,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.Groups.Count.ShouldBe(1);
@@ -279,7 +279,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.Groups[0].AlreadyExists.ShouldBeTrue();
@@ -302,7 +302,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.Groups[0].AlreadyExists.ShouldBeTrue();
@@ -320,7 +320,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.Groups.Count.ShouldBe(1);
@@ -340,7 +340,7 @@ public class CsvImportServiceTests : IDisposable
         var file = CreateFormFile(csvContent, "test.csv");
 
         // Act
-        var result = await _service.ParsePreviewAsync(file);
+        var result = await _sut.ParsePreviewAsync(file);
 
         // Assert
         result.Groups[0].Accounts[0].Snapshots[0].Amount.ShouldBe(1000.50m);
@@ -368,7 +368,7 @@ public class CsvImportServiceTests : IDisposable
         );
 
         // Act
-        var result = await _service.ExecuteImportAsync(preview);
+        var result = await _sut.ExecuteImportAsync(preview);
 
         // Assert
         result.GroupsCreated.ShouldBe(1);
@@ -414,7 +414,7 @@ public class CsvImportServiceTests : IDisposable
         );
 
         // Act
-        var result = await _service.ExecuteImportAsync(preview);
+        var result = await _sut.ExecuteImportAsync(preview);
 
         // Assert
         result.GroupsCreated.ShouldBe(0);
@@ -452,7 +452,7 @@ public class CsvImportServiceTests : IDisposable
         );
 
         // Act
-        var result = await _service.ExecuteImportAsync(preview);
+        var result = await _sut.ExecuteImportAsync(preview);
 
         // Assert
         result.GroupsCreated.ShouldBe(0);
@@ -491,7 +491,7 @@ public class CsvImportServiceTests : IDisposable
         );
 
         // Act
-        var result = await _service.ExecuteImportAsync(preview);
+        var result = await _sut.ExecuteImportAsync(preview);
 
         // Assert
         result.SnapshotsCreated.ShouldBe(3);

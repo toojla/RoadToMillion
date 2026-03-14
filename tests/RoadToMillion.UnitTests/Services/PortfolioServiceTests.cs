@@ -12,7 +12,7 @@ namespace RoadToMillion.UnitTests.Services;
 public class PortfolioServiceTests : IDisposable
 {
     private readonly AppDbContext _db;
-    private readonly IPortfolioService _service;
+    private readonly IPortfolioService _sut;
 
     public PortfolioServiceTests()
     {
@@ -22,7 +22,7 @@ public class PortfolioServiceTests : IDisposable
             .Options;
 
         _db = new AppDbContext(options);
-        _service = new PortfolioService(_db);
+        _sut = new PortfolioService(_db);
     }
 
     public void Dispose()
@@ -34,7 +34,7 @@ public class PortfolioServiceTests : IDisposable
     public async Task GetPortfolioSummaryAsync_WithNoData_ShouldReturnZeroValues()
     {
         // Act
-        var result = await _service.GetPortfolioSummaryAsync();
+        var result = await _sut.GetPortfolioSummaryAsync();
 
         // Assert
         result.ShouldNotBeNull();
@@ -65,7 +65,7 @@ public class PortfolioServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         // Act
-        var result = await _service.GetPortfolioSummaryAsync();
+        var result = await _sut.GetPortfolioSummaryAsync();
 
         // Assert
         result.ShouldNotBeNull();
@@ -110,7 +110,7 @@ public class PortfolioServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         // Act
-        var result = await _service.GetPortfolioSummaryAsync();
+        var result = await _sut.GetPortfolioSummaryAsync();
 
         // Assert
         result.CurrentTotal.ShouldBe(150_000m); // Should use the newer snapshot
@@ -160,7 +160,7 @@ public class PortfolioServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         // Act
-        var result = await _service.GetPortfolioSummaryAsync();
+        var result = await _sut.GetPortfolioSummaryAsync();
 
         // Assert
         result.CurrentTotal.ShouldBe(300_000m);
@@ -193,7 +193,7 @@ public class PortfolioServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         // Act
-        var result = await _service.GetPortfolioSummaryAsync();
+        var result = await _sut.GetPortfolioSummaryAsync();
 
         // Assert
         result.CurrentTotal.ShouldBe(1_500_000m);
