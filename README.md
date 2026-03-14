@@ -188,6 +188,12 @@ The `ServiceDefaults` project provides:
   - Interactive Chart.js line chart
   - Historical balance visualization
   - Automatically updates when new snapshots are added
+- **📝 Bulk Balance Entry** - Record balances for all accounts at once
+  - Single form to enter current balance for every account
+  - Set a common snapshot date for all entries
+  - Perfect for monthly/quarterly portfolio snapshots
+  - Shows current balance for reference
+  - Grouped by account groups for easy navigation
 - **CSV Import** - Bulk import accounts and historical balance data
   - Support for multiple snapshots per account
   - Date/time specification for historical data

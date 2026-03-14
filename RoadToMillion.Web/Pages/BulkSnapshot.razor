@@ -1,0 +1,210 @@
+@page "/bulk-snapshot"
+@inject ApiClient Api
+@inject NavigationManager Nav
+@using RoadToMillion.Web.Services
+@using RoadToMillion.Web.Models
+
+<PageTitle>Bulk Balance Entry – Road to Million</PageTitle>
+
+<h1>Record All Balances</h1>
+<p class="text-muted">Record balance snapshots for all accounts at once.</p>
+
+@if (loading)
+{
+    <p><em>Loading accounts...</em></p>
+}
+else if (!accountGroups.Any())
+{
+    <div class="alert alert-info">
+        No accounts found. <a href="/account-groups">Create some accounts</a> first.
+    </div>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Snapshot Settings</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Snapshot Date</label>
+                    <input type="date" class="form-control" @bind="snapshotDate" />
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label d-block">&nbsp;</label>
+                    <button class="btn btn-success" @onclick="SaveAllSnapshotsAsync" disabled="@saving">
+                        @(saving ? "Saving..." : "Save All Balances")
+                    </button>
+                    <button class="btn btn-outline-secondary ms-2" @onclick="ClearAll">Clear All</button>
+                </div>
+            </div>
+            @if (saveError is not null)
+            {
+                <div class="alert alert-danger mt-3">@saveError</div>
+            }
+            @if (saveSuccess)
+            {
+                <div class="alert alert-success mt-3">
+                    Successfully saved @snapshotsSaved snapshot(s)!
+                    <a href="/account-groups" class="alert-link ms-2">View Accounts</a>
+                </div>
+            }
+        </div>
+    </div>
+
+    @foreach (var group in accountGroups)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">@group.Name</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach (var account in group.Accounts)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <label class="form-label">
+                                @account.Name
+                                @if (account.CurrentBalance > 0)
+                                {
+                                    <small class="text-muted">(Current: @account.CurrentBalance.ToString("N0") SEK)</small>
+                                }
+                            </label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   @bind="balanceEntries[account.Id]" 
+                                   placeholder="Enter balance"
+                                   min="0" 
+                                   step="0.01" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<AccountGroupWithAccounts> accountGroups = new();
+    private Dictionary<int, decimal?> balanceEntries = new();
+    private DateOnly snapshotDate = DateOnly.FromDateTime(DateTime.Today);
+    private bool loading = true;
+    private bool saving = false;
+    private bool saveSuccess = false;
+    private string? saveError;
+    private int snapshotsSaved = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsAsync();
+        loading = false;
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        try
+        {
+            var groups = await Api.GetAccountGroupsAsync() ?? new List<AccountGroupResponse>();
+            accountGroups.Clear();
+            balanceEntries.Clear();
+
+            foreach (var group in groups)
+            {
+                var accounts = await Api.GetAccountsAsync(group.Id) ?? new List<AccountResponse>();
+                if (accounts.Any())
+                {
+                    accountGroups.Add(new AccountGroupWithAccounts
+                    {
+                        Id = group.Id,
+                        Name = group.Name,
+                        Accounts = accounts
+                    });
+
+                    // Initialize balance entries
+                    foreach (var account in accounts)
+                    {
+                        balanceEntries[account.Id] = null;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            saveError = $"Failed to load accounts: {ex.Message}";
+        }
+    }
+
+    private async Task SaveAllSnapshotsAsync()
+    {
+        saveError = null;
+        saveSuccess = false;
+        snapshotsSaved = 0;
+        saving = true;
+
+        try
+        {
+            var snapshotsToSave = balanceEntries
+                .Where(kvp => kvp.Value.HasValue && kvp.Value.Value > 0)
+                .ToList();
+
+            if (!snapshotsToSave.Any())
+            {
+                saveError = "Please enter at least one balance amount.";
+                saving = false;
+                return;
+            }
+
+            var errors = new List<string>();
+
+            foreach (var entry in snapshotsToSave)
+            {
+                try
+                {
+                    await Api.CreateSnapshotAsync(entry.Key, entry.Value!.Value, snapshotDate);
+                    snapshotsSaved++;
+                }
+                catch (Exception ex)
+                {
+                    var accountName = accountGroups
+                        .SelectMany(g => g.Accounts)
+                        .FirstOrDefault(a => a.Id == entry.Key)?.Name ?? $"Account {entry.Key}";
+                    errors.Add($"{accountName}: {ex.Message}");
+                }
+            }
+
+            if (errors.Any())
+            {
+                saveError = $"Some snapshots failed to save:\n{string.Join("\n", errors)}";
+            }
+            else
+            {
+                saveSuccess = true;
+                ClearAll();
+            }
+        }
+        catch (Exception ex)
+        {
+            saveError = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void ClearAll()
+    {
+        foreach (var key in balanceEntries.Keys.ToList())
+        {
+            balanceEntries[key] = null;
+        }
+    }
+
+    private class AccountGroupWithAccounts
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public List<AccountResponse> Accounts { get; set; } = new();
+    }
+}
