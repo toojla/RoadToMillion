@@ -64,3 +64,4 @@ Thumbs.db
 !.specify/
 !.github/
 /RoadToMillion.Api/appsettings.Development.json
+/src/RoadToMillion.Api/appsettings.Development.json
