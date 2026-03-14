@@ -1,6 +1,3 @@
-using RoadToMillion.Api.Data;
-using RoadToMillion.Api.Services;
-
 namespace RoadToMillion.Api.Configuration;
 
 public static class ServiceCollectionExtensions
@@ -16,6 +13,11 @@ public static class ServiceCollectionExtensions
         public IServiceCollection AddApplicationServices()
         {
             services.AddScoped<CsvImportService>();
+            services.AddScoped<IPortfolioService, PortfolioService>();
+            services.AddScoped<IAccountGroupService, AccountGroupService>();
+            services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<ISnapshotService, SnapshotService>();
+            services.AddScoped<IImportService, ImportService>();
             return services;
         }
 

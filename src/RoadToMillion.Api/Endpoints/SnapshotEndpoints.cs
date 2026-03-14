@@ -1,59 +1,31 @@
-using Microsoft.EntityFrameworkCore;
-using RoadToMillion.Api.Data;
 using RoadToMillion.Api.Models;
-
 namespace RoadToMillion.Api.Endpoints;
 
 public static class SnapshotEndpoints
 {
     public static void MapSnapshotEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/accounts/{accountId:int}/snapshots", async (int accountId, AppDbContext db) =>
+        app.MapGet("/api/accounts/{accountId:int}/snapshots", async (int accountId, ISnapshotService snapshotService) =>
         {
-            var accountExists = await db.Accounts.AnyAsync(a => a.Id == accountId);
-            if (!accountExists) return Results.NotFound();
-
-            var snapshots = await db.BalanceSnapshots
-                .Where(s => s.AccountId == accountId)
-                .OrderByDescending(s => s.Date)
-                .ThenByDescending(s => s.RecordedAt)
-                .ToListAsync();
-
-            var mostRecentId = snapshots.FirstOrDefault()?.Id;
-            var result = snapshots.Select(s =>
-                new SnapshotResponse(s.Id, s.Amount, s.Date, s.RecordedAt, s.Id == mostRecentId));
-
-            return Results.Ok(result);
+            var result = await snapshotService.GetSnapshotsByAccountAsync(accountId);
+            return result.Type switch
+            {
+                ResultType.Success => Results.Ok(result.Data),
+                ResultType.NotFound => Results.NotFound(),
+                _ => Results.Problem("An unexpected error occurred", statusCode: 500)
+            };
         });
 
-        app.MapPost("/api/accounts/{accountId:int}/snapshots", async (int accountId, CreateSnapshotRequest req, AppDbContext db) =>
+        app.MapPost("/api/accounts/{accountId:int}/snapshots", async (int accountId, CreateSnapshotRequest req, ISnapshotService snapshotService) =>
         {
-            var account = await db.Accounts.FindAsync(accountId);
-            if (account is null) return Results.NotFound();
-
-            if (req.Amount <= 0)
-                return Results.BadRequest(new { errors = new { amount = new[] { "Amount must be greater than zero." } } });
-
-            var snapshot = new BalanceSnapshot
+            var result = await snapshotService.CreateSnapshotAsync(accountId, req.Amount, req.Date);
+            return result.Type switch
             {
-                AccountId = accountId,
-                Amount = req.Amount,
-                Date = req.Date,
-                RecordedAt = DateTime.UtcNow
+                ResultType.Created => Results.Created(result.Location!, result.Data),
+                ResultType.NotFound => Results.NotFound(),
+                ResultType.BadRequest => Results.BadRequest(new { errors = new { amount = new[] { result.ErrorMessage } } }),
+                _ => Results.Problem("An unexpected error occurred", statusCode: 500)
             };
-            db.BalanceSnapshots.Add(snapshot);
-            await db.SaveChangesAsync();
-
-            // Determine if this is now the most recent
-            var isMostRecent = !await db.BalanceSnapshots
-                .Where(s => s.AccountId == accountId && s.Id != snapshot.Id)
-                .AnyAsync(s => s.Date > snapshot.Date ||
-                               (s.Date == snapshot.Date && s.RecordedAt > snapshot.RecordedAt));
-
-            return Results.Created($"/api/accounts/{accountId}/snapshots/{snapshot.Id}",
-                new SnapshotResponse(snapshot.Id, snapshot.Amount, snapshot.Date, snapshot.RecordedAt, isMostRecent));
         });
     }
 }
-
-public record CreateSnapshotRequest(decimal Amount, DateOnly Date);

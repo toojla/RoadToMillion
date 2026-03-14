@@ -1,62 +1,31 @@
-using Microsoft.EntityFrameworkCore;
-using RoadToMillion.Api.Data;
-using RoadToMillion.Api.Models;
-using RoadToMillion.Api.Services;
-
 namespace RoadToMillion.Api.Endpoints;
 
 public static class ImportEndpoints
 {
     public static void MapImportEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/import/preview", async (IFormFile file, CsvImportService importService) =>
+        app.MapPost("/api/import/preview", async (IFormFile file, IImportService importService) =>
         {
-            try
+            var result = await importService.ParsePreviewAsync(file);
+            return result.Type switch
             {
-                var preview = await importService.ParsePreviewAsync(file);
-                return Results.Ok(preview);
-            }
-            catch (ImportValidationException ex)
-            {
-                return Results.BadRequest(new { errors = new { file = new[] { ex.Message } }, status = 400 });
-            }
+                ResultType.Success => Results.Ok(result.Data),
+                ResultType.BadRequest => Results.BadRequest(new { errors = new { file = new[] { result.ErrorMessage } }, status = 400 }),
+                _ => Results.Problem("An unexpected error occurred", statusCode: 500)
+            };
         }).DisableAntiforgery();
 
-        app.MapPost("/api/import/confirm", async (ImportPreview preview, CsvImportService importService, AppDbContext db) =>
+        app.MapPost("/api/import/confirm", async (ImportPreview preview, IImportService importService) =>
         {
-            // Validate that we have groups, accounts, and snapshots to import
-            if (preview?.Groups == null || preview.Groups.Count == 0 || 
-                preview.Groups.All(g => g.Accounts == null || g.Accounts.Count == 0 || g.Accounts.All(a => a.Snapshots == null || a.Snapshots.Count == 0)))
-                return Results.BadRequest(new { errors = new { body = new[] { "No valid records to import." } }, status = 400 });
-
-            // Server-side conflict check: any group not marked alreadyExists that now exists in DB?
-            var newGroupNames = preview.Groups
-                .Where(g => !g.AlreadyExists)
-                .Select(g => g.Name.ToLower())
-                .ToList();
-
-            if (newGroupNames.Count > 0)
+            var result = await importService.ExecuteImportAsync(preview);
+            return result.Type switch
             {
-                var nowExist = await db.AccountGroups
-                    .Where(g => newGroupNames.Contains(g.Name.ToLower()))
-                    .AnyAsync();
-
-                if (nowExist)
-                    return Results.Conflict(new
-                    {
-                        error = "Data changed since preview was generated. Please re-upload and preview again."
-                    });
-            }
-
-            try
-            {
-                var result = await importService.ExecuteImportAsync(preview);
-                return Results.Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(detail: ex.Message, statusCode: 500);
-            }
+                ResultType.Success => Results.Ok(result.Data),
+                ResultType.BadRequest => Results.BadRequest(new { errors = new { body = new[] { result.ErrorMessage } }, status = 400 }),
+                ResultType.Conflict => Results.Conflict(new { error = result.ErrorMessage }),
+                ResultType.Error => Results.Problem(detail: result.ErrorMessage, statusCode: 500),
+                _ => Results.Problem("An unexpected error occurred", statusCode: 500)
+            };
         });
     }
 }

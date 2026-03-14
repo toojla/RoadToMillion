@@ -1,61 +1,37 @@
-using Microsoft.EntityFrameworkCore;
-using RoadToMillion.Api.Data;
 using RoadToMillion.Api.Models;
-
 namespace RoadToMillion.Api.Endpoints;
 
 public static class AccountGroupEndpoints
 {
     public static void MapAccountGroupEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/account-groups", async (AppDbContext db) =>
+        app.MapGet("/api/account-groups", async (IAccountGroupService accountGroupService) =>
         {
-            var groups = await db.AccountGroups
-                .Include(g => g.Accounts)
-                    .ThenInclude(a => a.BalanceSnapshots)
-                .ToListAsync();
+            var groups = await accountGroupService.GetAllAccountGroupsAsync();
+            return Results.Ok(groups);
+        });
 
-            var result = groups.Select(g =>
+        app.MapPost("/api/account-groups", async (IAccountGroupService accountGroupService, CreateAccountGroupRequest req) =>
+        {
+            var result = await accountGroupService.CreateAccountGroupAsync(req.Name);
+            return result.Type switch
             {
-                var total = g.Accounts.Sum(a =>
-                    a.BalanceSnapshots
-                        .OrderByDescending(s => s.Date)
-                        .ThenByDescending(s => s.RecordedAt)
-                        .FirstOrDefault()?.Amount ?? 0m);
-                return new AccountGroupResponse(g.Id, g.Name, total);
-            });
-
-            return Results.Ok(result);
+                ResultType.Created => Results.Created(result.Location!, result.Data),
+                ResultType.BadRequest => Results.BadRequest(new { errors = new { name = new[] { result.ErrorMessage } } }),
+                ResultType.Conflict => Results.Conflict(new { errors = new { name = new[] { result.ErrorMessage } } }),
+                _ => Results.Problem("An unexpected error occurred", statusCode: 500)
+            };
         });
 
-        app.MapPost("/api/account-groups", async (AppDbContext db, CreateAccountGroupRequest req) =>
+        app.MapDelete("/api/account-groups/{id:int}", async (int id, IAccountGroupService accountGroupService) =>
         {
-            if (string.IsNullOrWhiteSpace(req.Name))
-                return Results.BadRequest(new { errors = new { name = new[] { "Name is required." } } });
-
-            var exists = await db.AccountGroups
-                .AnyAsync(g => g.Name.ToLower() == req.Name.ToLower());
-            if (exists)
-                return Results.Conflict(new { errors = new { name = new[] { "A group with this name already exists." } } });
-
-            var group = new AccountGroup { Name = req.Name.Trim() };
-            db.AccountGroups.Add(group);
-            await db.SaveChangesAsync();
-
-            return Results.Created($"/api/account-groups/{group.Id}",
-                new AccountGroupResponse(group.Id, group.Name, 0m));
-        });
-
-        app.MapDelete("/api/account-groups/{id:int}", async (int id, AppDbContext db) =>
-        {
-            var group = await db.AccountGroups.FindAsync(id);
-            if (group is null) return Results.NotFound();
-
-            db.AccountGroups.Remove(group);
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            var result = await accountGroupService.DeleteAccountGroupAsync(id);
+            return result.Type switch
+            {
+                ResultType.NoContent => Results.NoContent(),
+                ResultType.NotFound => Results.NotFound(),
+                _ => Results.Problem("An unexpected error occurred", statusCode: 500)
+            };
         });
     }
 }
-
-public record CreateAccountGroupRequest(string Name);
