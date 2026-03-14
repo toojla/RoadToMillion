@@ -4,14 +4,15 @@ A personal finance tracking application built with .NET Aspire, Blazor WebAssemb
 
 ## 🏗️ Architecture
 
-This solution uses a modern distributed architecture orchestrated by .NET Aspire:
+This solution uses a modern distributed architecture orchestrated by .NET Aspire with clean architecture principles:
 
 ### Projects
 
 - **RoadToMillion.Web** - Blazor WebAssembly client application
-- **RoadToMillion.Api** - ASP.NET Core Web API backend
+- **RoadToMillion.Api** - ASP.NET Core Web API backend with service layer
 - **RoadToMillion.ServiceDefaults** - Shared Aspire service defaults (OpenTelemetry, health checks, service discovery)
 - **RoadToMillion.AppHost** - Aspire orchestration host
+- **RoadToMillion.UnitTests** - Comprehensive unit tests for all services
 
 ### Technology Stack
 
@@ -23,6 +24,31 @@ This solution uses a modern distributed architecture orchestrated by .NET Aspire
 - **OpenTelemetry** for distributed tracing and metrics
 - **Scalar** for API documentation (development)
 - **pgAdmin** for PostgreSQL database management (development)
+
+### API Architecture
+
+The API follows clean architecture principles with:
+
+- **Endpoints** - Thin HTTP handlers using minimal APIs
+- **Services** - Business logic layer with interfaces
+  - `IPortfolioService` - Portfolio summary calculations
+  - `IAccountGroupService` - Account group management
+  - `IAccountService` - Account operations
+  - `ISnapshotService` - Balance snapshot management
+  - `ICsvImportService` - CSV parsing and validation
+  - `IImportService` - Import orchestration
+- **Result Pattern** - Consistent error handling across services
+- **Global Usings** - Reduced boilerplate in service files
+- **Configuration Extensions** - Organized service registration
+
+**Benefits**:
+- ✅ Easy to unit test (89 tests, 85 passing)
+- ✅ Clear separation of concerns
+- ✅ Reusable business logic
+- ✅ Consistent error handling
+- ✅ Maintainable and scalable
+
+See [docs/api-refactoring.md](docs/api-refactoring.md) for detailed architecture information.
 
 ## 📊 Data Model
 
@@ -272,7 +298,83 @@ When running with Aspire, pgAdmin is automatically started and accessible from t
 - **Liveness**: `GET /alive` - Basic application availability
 - **Readiness**: `GET /health` - Detailed health check including PostgreSQL database connectivity
 
+## 📚 Documentation
+
+Additional documentation is available in the `docs/` folder:
+
+- **[API Refactoring](docs/api-refactoring.md)** - Details about the service layer architecture
+- **[Service Unit Tests](docs/service-unit-tests.md)** - Comprehensive test documentation and coverage
+- **[Specifications](specs/)** - Feature specifications and data models
+
+## 📂 Project Structure
+
+```
+RoadToMillion/
+├── orchestration/
+│   ├── RoadToMillion.AppHost/          # Aspire orchestration host
+│   └── RoadToMillion.ServiceDefaults/   # Shared service configuration
+├── src/
+│   ├── RoadToMillion.Api/
+│   │   ├── Configuration/               # Service registration extensions
+│   │   ├── Data/                        # EF Core DbContext and migrations
+│   │   ├── Endpoints/                   # Minimal API endpoints
+│   │   ├── Models/                      # Entity models and DTOs
+│   │   ├── Services/                    # Business logic services with interfaces
+│   │   └── GlobalUsings.cs             # Global using directives
+│   └── RoadToMillion.Web/              # Blazor WebAssembly client
+│       ├── Components/                  # Reusable Blazor components
+│       ├── Models/                      # Client-side DTOs
+│       ├── Pages/                       # Blazor pages/routes
+│       └── Services/                    # HTTP client services
+├── tests/
+│   └── RoadToMillion.UnitTests/        # Unit tests for all services
+│       └── Services/                    # Service layer tests (89 tests)
+├── docs/                                # Additional documentation
+└── specs/                               # Feature specifications
+```
+
+## 🤝 Contributing
+
+This is a personal finance tracking project. Feel free to fork and adapt for your own needs!
+
+## 📝 License
+
+This project is licensed under the MIT License.
+
+## 🎯 Roadmap
+
+- [ ] Add charts and data visualization
+- [ ] Export functionality (CSV, PDF)
+- [ ] Budget tracking and alerts
+- [ ] Multi-currency support
+- [ ] Mobile app (Blazor Hybrid)
+- [ ] Authentication and multi-user support
+
 ## 🛠️ Development
+
+### Running Tests
+
+The project includes comprehensive unit tests for all services:
+
+```bash
+# Run all tests
+dotnet test
+
+# Run specific test class
+dotnet test --filter "FullyQualifiedName~AccountGroupServiceTests"
+
+# Run with verbose output
+dotnet test --verbosity detailed
+```
+
+**Test Statistics**:
+- 89 total tests
+- 85 passing
+- 4 skipped (transaction-dependent tests)
+- Test frameworks: xUnit, Shouldly, NSubstitute
+- Coverage: All service layers
+
+See [docs/service-unit-tests.md](docs/service-unit-tests.md) for detailed test documentation.
 
 ### API Documentation
 
