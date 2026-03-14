@@ -1,6 +1,6 @@
 namespace RoadToMillion.Api.Services;
 
-public class ImportService(CsvImportService csvImportService, AppDbContext db) : IImportService
+public class ImportService(ICsvImportService csvImportService, AppDbContext db) : IImportService
 {
     public async Task<Result<ImportPreview>> ParsePreviewAsync(IFormFile file)
     {

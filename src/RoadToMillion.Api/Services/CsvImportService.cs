@@ -1,13 +1,10 @@
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
-using Microsoft.EntityFrameworkCore;
-using RoadToMillion.Api.Data;
-using RoadToMillion.Api.Models;
 
 namespace RoadToMillion.Api.Services;
 
-public class CsvImportService(AppDbContext db)
+public class CsvImportService(AppDbContext db) : ICsvImportService
 {
     private static readonly string[] RequiredColumns = ["AccountGroup", "AccountName"];
 
