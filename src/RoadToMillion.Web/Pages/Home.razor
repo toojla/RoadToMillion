@@ -1,5 +1,6 @@
 ﻿@page "/"
 @inject ApiClient Api
+@inject IJSRuntime JSRuntime
 @using RoadToMillion.Web.Services
 @using RoadToMillion.Web.Models
 
@@ -43,7 +44,19 @@ else
         </div>
     </div>
 
-    <h4>Account Groups</h4>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Account Groups</h4>
+        <div class="d-flex align-items-center gap-2">
+            <label for="sortOrder" class="mb-0">Sort by:</label>
+            <select id="sortOrder" class="form-select form-select-sm" style="width: auto;" @bind="SortOrder" @bind:after="OnSortOrderChanged">
+                <option value="balance-desc">Balance (High to Low)</option>
+                <option value="balance-asc">Balance (Low to High)</option>
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+            </select>
+        </div>
+    </div>
+
     <table class="table table-striped">
         <thead>
             <tr>
@@ -52,7 +65,7 @@ else
             </tr>
         </thead>
         <tbody>
-            @foreach (var group in summary.Groups)
+            @foreach (var group in GetSortedGroups())
             {
                 <tr>
                     <td>@group.Name</td>
@@ -72,11 +85,46 @@ else
 @code {
     private PortfolioSummary? summary;
     private bool loading = true;
+    private string sortOrder = "balance-desc";
+
+    private string SortOrder
+    {
+        get => sortOrder;
+        set => sortOrder = value;
+    }
 
     protected override async Task OnInitializedAsync()
     {
+        // Load saved sort order from localStorage
+        var savedSortOrder = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "dashboardSortOrder");
+        if (!string.IsNullOrEmpty(savedSortOrder))
+        {
+            sortOrder = savedSortOrder;
+        }
+
         summary = await Api.GetPortfolioSummaryAsync();
         loading = false;
+    }
+
+    private async Task OnSortOrderChanged()
+    {
+        // Save sort order to localStorage
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "dashboardSortOrder", sortOrder);
+    }
+
+    private IEnumerable<GroupSummary> GetSortedGroups()
+    {
+        if (summary?.Groups == null)
+            return Enumerable.Empty<GroupSummary>();
+
+        return sortOrder switch
+        {
+            "balance-asc" => summary.Groups.OrderBy(g => g.CurrentTotal),
+            "balance-desc" => summary.Groups.OrderByDescending(g => g.CurrentTotal),
+            "name-asc" => summary.Groups.OrderBy(g => g.Name),
+            "name-desc" => summary.Groups.OrderByDescending(g => g.Name),
+            _ => summary.Groups.OrderByDescending(g => g.CurrentTotal)
+        };
     }
 }
 
