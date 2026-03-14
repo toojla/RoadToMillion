@@ -285,9 +285,9 @@ public class CsvImportService(AppDbContext db)
 
     private static string DetectDelimiter(string firstLine)
     {
-        int commas = CountOutsideQuotes(firstLine, ',');
-        int semis = CountOutsideQuotes(firstLine, ';');
-        int tabs = CountOutsideQuotes(firstLine, '\t');
+        var commas = CountOutsideQuotes(firstLine, ',');
+        var semis = CountOutsideQuotes(firstLine, ';');
+        var tabs = CountOutsideQuotes(firstLine, '\t');
 
         if (tabs >= commas && tabs >= semis) return "\t";
         if (semis >= commas) return ";";
