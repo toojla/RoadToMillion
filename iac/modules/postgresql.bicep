@@ -73,3 +73,13 @@ resource firewallAllowedIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallR
 ]
 
 output fqdn string = server.properties.fullyQualifiedDomainName
+
+// pgaadauth must be allowlisted before it can be created with CREATE EXTENSION.
+resource extensionAllowlist 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  parent: server
+  name: 'azure.extensions'
+  properties: {
+    value: 'PGAADAUTH'
+    source: 'user-override'
+  }
+}
