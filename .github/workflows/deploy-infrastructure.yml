@@ -6,10 +6,10 @@ on:
       environment:
         description: "Target environment"
         required: true
-        default: Production
+        default: production
         type: choice
         options:
-          - Production
+          - production
       what_if:
         description: "Run what-if only (no changes deployed)"
         required: false
@@ -28,7 +28,7 @@ jobs:
   validate:
     name: Validate
     runs-on: ubuntu-latest
-    environment: Production
+    environment: ${{ inputs.environment }}
 
     steps:
       - name: Checkout
@@ -44,9 +44,6 @@ jobs:
         uses: azure/login@v2
         with:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
-            # client-id: ${{ secrets.AZURE_CLIENT_ID }}
-            # tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-            # subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Validate template
         run: |
@@ -60,6 +57,7 @@ jobs:
     name: What-if
     runs-on: ubuntu-latest
     needs: validate
+    environment: ${{ inputs.environment }}
 
     steps:
       - name: Checkout
