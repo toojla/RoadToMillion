@@ -4,6 +4,11 @@ param dbName string
 param adminUser string
 @secure()
 param adminPassword string
+param entraAdminObjectId string
+param entraAdminName string
+// List of IP addresses (single IPs or CIDR ranges) allowed to connect directly,
+// e.g. for local development or DBA access. Each entry becomes a firewall rule.
+param allowedIpAddresses array = []
 param tags object = {}
 
 // Burstable B1ms: 1 vCore, 2 GB RAM — cheapest Flexible Server tier (~$12/month).
@@ -29,6 +34,12 @@ resource server 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     highAvailability: {
       mode: 'Disabled'
     }
+    authConfig: {
+      // Keep password auth enabled for DBA access; add Entra ID for managed identity.
+      activeDirectoryAuth: 'Enabled'
+      passwordAuth: 'Enabled'
+      tenantId: tenant().tenantId
+    }
   }
 }
 
@@ -51,7 +62,28 @@ resource firewallAllowAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallR
   }
 }
 
-output fqdn string = server.properties.fullyQualifiedDomainName
+// One firewall rule per entry in allowedIpAddresses.
+resource firewallAllowedIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = [
+  for (ip, i) in allowedIpAddresses: {
+    parent: server
+    name: 'AllowIp-${i}'
+    properties: {
+      startIpAddress: ip
+      endIpAddress: ip
+    }
+  }
+]
 
-@secure()
-output connectionString string = 'Host=${server.properties.fullyQualifiedDomainName};Database=${dbName};Username=${adminUser};Password=${adminPassword};SslMode=Require'
+// Register an Entra ID administrator who can connect and run post-deploy SQL
+// (e.g. pgaadauth_create_principal_with_oid to register the API managed identity).
+resource entraAdmin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
+  parent: server
+  name: entraAdminObjectId
+  properties: {
+    principalName: entraAdminName
+    principalType: 'ServicePrincipal'
+    tenantId: tenant().tenantId
+  }
+}
+
+output fqdn string = server.properties.fullyQualifiedDomainName

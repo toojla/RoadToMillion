@@ -25,6 +25,9 @@ param postgresDbName string
 param postgresAdminUser string
 @secure()
 param postgresAdminPassword string
+param postgresEntraAdminObjectId string
+param postgresEntraAdminName string
+param postgresAllowedIpAddresses array = []
 
 // API App Service
 param apiAppName string
@@ -65,6 +68,9 @@ module postgres 'modules/postgresql.bicep' = {
     dbName: postgresDbName
     adminUser: postgresAdminUser
     adminPassword: postgresAdminPassword
+    entraAdminObjectId: postgresEntraAdminObjectId
+    entraAdminName: postgresEntraAdminName
+    allowedIpAddresses: postgresAllowedIpAddresses
     tags: tags
   }
 }
@@ -76,7 +82,8 @@ module api 'modules/api.bicep' = {
     appName: apiAppName
     planId: plan.outputs.planId
     appInsightsConnectionString: observability.outputs.appInsightsConnectionString
-    dbConnectionString: postgres.outputs.connectionString
+    dbServerFqdn: postgres.outputs.fqdn
+    dbName: postgresDbName
     tags: tags
   }
 }

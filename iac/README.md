@@ -188,6 +188,53 @@ validate → what-if → deploy (pauses for environment approval)
 
 Setting `what_if: true` is useful to preview what ARM would change before committing to a real deploy.
 
+## 6. Post-deploy: register the API managed identity in PostgreSQL
+
+Bicep enables Entra ID authentication on the PostgreSQL server but **cannot create PostgreSQL roles** — that requires a SQL statement run once after the first deploy.
+
+**Step 1 — Retrieve the API's managed identity object ID:**
+
+```powershell
+az webapp identity show `
+  --name app-roadtomillion-api-001-prod `
+  --resource-group rg-roadtomillion-prod `
+  --query principalId -o tsv
+# Or from the Bicep deployment outputs:
+az deployment sub show --name "deploy-roadtomillion-prod" `
+  --query "properties.outputs" -o json
+```
+
+**Step 2 — Connect to PostgreSQL as the Entra admin** (the principal set in `postgresEntraAdminObjectId`):
+
+```powershell
+# Get an access token for the Entra admin (must be the principal registered in the param file)
+$token = az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv
+
+psql "host=psql-roadtomillion-001-prod.postgres.database.azure.com \
+      port=5432 \
+      dbname=roadtomilliondb \
+      user=<your-entra-admin-upn> \
+      password=$token \
+      sslmode=require"
+```
+
+**Step 3 — Register the managed identity as a PostgreSQL role:**
+
+```sql
+-- Replace <managed-identity-object-id> with the value from Step 1.
+-- The display name must match the Username in the connection string (= the App Service name).
+SELECT pgaadauth_create_principal_with_oid(
+  'app-roadtomillion-api-001-prod',
+  '<managed-identity-object-id>',
+  'service', false, false
+);
+
+GRANT ALL PRIVILEGES ON DATABASE roadtomilliondb TO "app-roadtomillion-api-001-prod";
+GRANT ALL ON SCHEMA public TO "app-roadtomillion-api-001-prod";
+```
+
+This is a **one-time operation**. Re-running the Bicep deploy later does not affect the PostgreSQL roles.
+
 ## Notes
 
 - **CORS** — the API's allowed origin is currently hardcoded to `localhost`. Update `AddCorsPolicy` in [src/RoadToMillion.Api/Configuration/ServiceCollectionExtensions.cs](../src/RoadToMillion.Api/Configuration/ServiceCollectionExtensions.cs) to read from the `AllowedOrigins__0` app setting before the first production deploy.

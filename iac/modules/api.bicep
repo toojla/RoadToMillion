@@ -2,8 +2,8 @@ param location string
 param appName string
 param planId string
 param appInsightsConnectionString string
-@secure()
-param dbConnectionString string
+param dbServerFqdn string
+param dbName string
 param tags object = {}
 
 resource api 'Microsoft.Web/sites@2024-04-01' = {
@@ -25,9 +25,10 @@ resource api 'Microsoft.Web/sites@2024-04-01' = {
           value: appInsightsConnectionString
         }
         {
-          // Matches AddNpgsqlDbContext<AppDbContext>("roadtomilliondb") in ServiceCollectionExtensions.
+          // Password-free connection string; the API uses Azure AD token provider at runtime.
+          // Username must match the role registered via pgaadauth_create_principal_with_oid.
           name: 'ConnectionStrings__roadtomilliondb'
-          value: dbConnectionString
+          value: 'Host=${dbServerFqdn};Database=${dbName};Username=${appName};SslMode=Require'
         }
         {
           name: 'ASPNETCORE_ENVIRONMENT'
