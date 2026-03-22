@@ -78,8 +78,7 @@ module api 'modules/api.bicep' = {
     appName: apiAppName
     planId: plan.outputs.planId
     appInsightsConnectionString: observability.outputs.appInsightsConnectionString
-    dbServerFqdn: postgres.outputs.fqdn
-    dbName: postgresDbName
+    dbConnectionString: postgres.outputs.connectionString
     tags: tags
   }
 }

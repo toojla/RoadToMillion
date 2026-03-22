@@ -216,25 +216,13 @@ $apiPrincipalId = az webapp identity show `
   --query principalId -o tsv
 ```
 
-**Step 3 — Connect to PostgreSQL as the Entra admin:**
-
-```powershell
-$token = az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv
-
-psql "host=psql-roadtomillion-001-prod.postgres.database.azure.com \
-      port=5432 \
-      dbname=roadtomilliondb \
-      user=<your-entra-principal-upn-or-sp-name> \
-      password=$token \
-      sslmode=require"
-```
-
-**Step 4 — Register the managed identity as a PostgreSQL role:**
+**Step 3 — Register the managed identity as a PostgreSQL role:**
 
 ```sql
 -- Replace <api-principal-id> with the value from Step 2.
 -- Username must match the App Service name (used in the connection string).
-SELECT pgaadauth_create_principal_with_oid(
+-- pgaadauth is pre-loaded when Entra auth is enabled; use schema-qualified call.
+SELECT pgaadauth.pgaadauth_create_principal_with_oid(
   'app-roadtomillion-api-001-prod',
   '<api-principal-id>',
   'service', false, false

@@ -32,12 +32,6 @@ resource server 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     highAvailability: {
       mode: 'Disabled'
     }
-    authConfig: {
-      // Keep password auth enabled for DBA access; add Entra ID for managed identity.
-      activeDirectoryAuth: 'Enabled'
-      passwordAuth: 'Enabled'
-      tenantId: tenant().tenantId
-    }
   }
 }
 
@@ -74,12 +68,5 @@ resource firewallAllowedIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallR
 
 output fqdn string = server.properties.fullyQualifiedDomainName
 
-// pgaadauth must be allowlisted before it can be created with CREATE EXTENSION.
-resource extensionAllowlist 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
-  parent: server
-  name: 'azure.extensions'
-  properties: {
-    value: 'PGAADAUTH'
-    source: 'user-override'
-  }
-}
+@secure()
+output connectionString string = 'Host=${server.properties.fullyQualifiedDomainName};Database=${dbName};Username=${adminUser};Password=${adminPassword};SslMode=Require'
