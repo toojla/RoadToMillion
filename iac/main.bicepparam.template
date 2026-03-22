@@ -27,10 +27,6 @@ param postgresAdminUser = 'rtmadmin'
 // Read from the POSTGRES_ADMIN_PASSWORD environment variable at deploy time.
 param postgresAdminPassword = readEnvironmentVariable('POSTGRES_ADMIN_PASSWORD')
 
-// Object ID and display name of the Entra ID principal registered as PostgreSQL Entra admin.
-param postgresEntraAdminObjectId = '<entra-sp-object-id>'
-param postgresEntraAdminName = '<entra-sp-display-name>'
-
 // IP addresses allowed to connect directly to PostgreSQL (e.g. for DBA/local dev access).
 param postgresAllowedIpAddresses = [
   '<your-public-ip>'

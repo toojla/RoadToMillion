@@ -25,8 +25,6 @@ param postgresDbName string
 param postgresAdminUser string
 @secure()
 param postgresAdminPassword string
-param postgresEntraAdminObjectId string
-param postgresEntraAdminName string
 param postgresAllowedIpAddresses array = []
 
 // API App Service
@@ -68,8 +66,6 @@ module postgres 'modules/postgresql.bicep' = {
     dbName: postgresDbName
     adminUser: postgresAdminUser
     adminPassword: postgresAdminPassword
-    entraAdminObjectId: postgresEntraAdminObjectId
-    entraAdminName: postgresEntraAdminName
     allowedIpAddresses: postgresAllowedIpAddresses
     tags: tags
   }
