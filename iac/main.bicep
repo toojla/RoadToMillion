@@ -33,6 +33,9 @@ param apiAppName string
 // Static Web App
 param webAppName string
 
+@description('Default hostname of the Static Web App for CORS. Get after first deploy: az staticwebapp show --name <webAppName> --resource-group <rg> --query defaultHostname -o tsv')
+param webAppHostname string = ''
+
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
   location: location
@@ -79,6 +82,7 @@ module api 'modules/api.bicep' = {
     planId: plan.outputs.planId
     appInsightsConnectionString: observability.outputs.appInsightsConnectionString
     dbConnectionString: postgres.outputs.connectionString
+    allowedOrigin: empty(webAppHostname) ? '' : 'https://${webAppHostname}'
     tags: tags
   }
 }

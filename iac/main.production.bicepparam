@@ -39,3 +39,7 @@ param apiAppName = 'app-roadtomillion-api-001-prod'
 
 // Static Web App
 param webAppName = 'stapp-roadtomillion-web-001-prod'
+
+// CORS: set to the Static Web App default hostname after first deploy.
+// Get it with: az staticwebapp show --name stapp-roadtomillion-web-001-prod --resource-group rg-roadtomillion-prod --query defaultHostname -o tsv
+param webAppHostname = 'mango-mud-0cad3dd03.1.azurestaticapps.net'

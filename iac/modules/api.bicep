@@ -4,6 +4,8 @@ param planId string
 param appInsightsConnectionString string
 @secure()
 param dbConnectionString string
+@description('Allowed CORS origin for the API (Static Web App URL). Empty string disables the setting so the API falls back to its appsettings.Development.json default.')
+param allowedOrigin string = ''
 param tags object = {}
 
 resource api 'Microsoft.Web/sites@2024-04-01' = {
@@ -34,9 +36,9 @@ resource api 'Microsoft.Web/sites@2024-04-01' = {
           value: 'Production'
         }
         {
-          // TODO: update AddCorsPolicy in ServiceCollectionExtensions to read origins from config.
+          // Picked up by AddCorsPolicy via IConfiguration. Set to the Static Web App hostname.
           name: 'AllowedOrigins__0'
-          value: ''
+          value: allowedOrigin
         }
       ]
     }

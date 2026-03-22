@@ -37,3 +37,7 @@ param apiAppName = 'app-roadtomillion-api-<env>'
 
 // Static Web App
 param webAppName = 'stapp-roadtomillion-web-<env>'
+
+// CORS: set to the Static Web App default hostname after first deploy.
+// Get it with: az staticwebapp show --name stapp-roadtomillion-web-<env> --resource-group rg-roadtomillion-<env> --query defaultHostname -o tsv
+param webAppHostname = ''
