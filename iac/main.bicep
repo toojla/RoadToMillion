@@ -83,6 +83,7 @@ module api 'modules/api.bicep' = {
     appInsightsConnectionString: observability.outputs.appInsightsConnectionString
     dbConnectionString: postgres.outputs.connectionString
     allowedOrigin: empty(webAppHostname) ? '' : 'https://${webAppHostname}'
+    allowedIpAddresses: postgresAllowedIpAddresses
     tags: tags
   }
 }
