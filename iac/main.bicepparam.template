@@ -1,6 +1,5 @@
 // Copy this file and rename it, e.g. main.staging.bicepparam, then fill in values.
-// The postgresAdminPassword must never be stored in this file — pass it at deploy time:
-//   az deployment sub create ... --parameters postgresAdminPassword=$env:PG_PASSWORD
+// The password is read from an environment variable at deploy time — never hardcode it.
 
 using './main.bicep'
 
@@ -25,6 +24,8 @@ param planName = 'asp-roadtomillion-<env>'
 param postgresServerName = 'psql-roadtomillion-<env>'
 param postgresDbName = 'roadtomilliondb'
 param postgresAdminUser = 'rtmadmin'
+// Read from the POSTGRES_ADMIN_PASSWORD environment variable at deploy time.
+param postgresAdminPassword = readEnvironmentVariable('POSTGRES_ADMIN_PASSWORD')
 
 // App Services
 param apiAppName = 'app-roadtomillion-api-<env>'

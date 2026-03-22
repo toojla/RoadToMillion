@@ -22,8 +22,10 @@ param planName = 'asp-roadtomillion-prod'
 param postgresServerName = 'psql-roadtomillion-001-prod'
 param postgresDbName = 'roadtomilliondb'
 param postgresAdminUser = 'rtmadmin'
-// postgresAdminPassword must be supplied at deploy time, e.g.:
-//   az deployment sub create ... --parameters postgresAdminPassword=$env:PG_PASSWORD
+// Read from the POSTGRES_ADMIN_PASSWORD environment variable at deploy time.
+// Locally: $env:POSTGRES_ADMIN_PASSWORD = '<password>'
+// GitHub Actions: set via POSTGRES_ADMIN_PASSWORD env var on the workflow step.
+param postgresAdminPassword = readEnvironmentVariable('POSTGRES_ADMIN_PASSWORD')
 
 // App Services
 param apiAppName = 'app-roadtomillion-api-001-prod'

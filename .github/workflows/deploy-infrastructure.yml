@@ -46,12 +46,13 @@ jobs:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Validate template
+        env:
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
         run: |
           az deployment sub validate \
             --location swedencentral \
             --template-file iac/main.bicep \
-            --parameters iac/main.${{ inputs.environment }}.bicepparam \
-            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}"
+            --parameters iac/main.${{ inputs.environment }}.bicepparam
 
   what-if:
     name: What-if
@@ -69,12 +70,13 @@ jobs:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: What-if
+        env:
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
         run: |
           az deployment sub what-if \
             --location swedencentral \
             --template-file iac/main.bicep \
-            --parameters iac/main.${{ inputs.environment }}.bicepparam \
-            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}"
+            --parameters iac/main.${{ inputs.environment }}.bicepparam
 
   deploy:
     name: Deploy
@@ -93,12 +95,13 @@ jobs:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy
+        env:
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
         run: |
           az deployment sub create \
             --location swedencentral \
             --template-file iac/main.bicep \
             --parameters iac/main.${{ inputs.environment }}.bicepparam \
-            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
             --name "deploy-roadtomillion-${{ inputs.environment }}-${{ github.run_number }}"
 
       - name: Show outputs
