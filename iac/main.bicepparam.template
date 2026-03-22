@@ -1,0 +1,33 @@
+// Copy this file and rename it, e.g. main.staging.bicepparam, then fill in values.
+// The postgresAdminPassword must never be stored in this file — pass it at deploy time:
+//   az deployment sub create ... --parameters postgresAdminPassword=$env:PG_PASSWORD
+
+using './main.bicep'
+
+param location = 'swedencentral'
+param webLocation = 'westeurope'
+
+param resourceGroupName = 'rg-roadtomillion-<env>'
+
+param tags = {
+  environment: '<env>'
+  project: 'RoadToMillion'
+}
+
+// Observability
+param workspaceName = 'log-roadtomillion-<env>'
+param appInsightsName = 'appi-roadtomillion-<env>'
+
+// App Service Plan
+param planName = 'asp-roadtomillion-<env>'
+
+// PostgreSQL Flexible Server
+param postgresServerName = 'psql-roadtomillion-<env>'
+param postgresDbName = 'roadtomilliondb'
+param postgresAdminUser = 'rtmadmin'
+
+// App Services
+param apiAppName = 'app-roadtomillion-api-<env>'
+
+// Static Web App
+param webAppName = 'stapp-roadtomillion-web-<env>'
