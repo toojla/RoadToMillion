@@ -96,11 +96,17 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     "Issuer": "RoadToMillion.Api",
     "Audience": "RoadToMillion.Web",
     "ExpirationInMinutes": 60
+  },
+  "Features": {
+    "EnableUserRegistration": true
   }
 }
 ```
 
-**⚠️ IMPORTANT:** In production, use Azure Key Vault or environment variables for the secret key!
+**⚠️ IMPORTANT:** 
+- In production, use Azure Key Vault or environment variables for the secret key!
+- Set `EnableUserRegistration` to `false` in production to disable public registration
+- When disabled, only administrators can create user accounts
 
 ### Step 5: Create Authentication Service
 
@@ -225,8 +231,17 @@ public static class AuthEndpoints
     {
         var auth = app.MapGroup("/api/auth");
 
-        auth.MapPost("/register", async (IAuthService authService, RegisterRequest request) =>
+        auth.MapPost("/register", async (IAuthService authService, IConfiguration configuration, RegisterRequest request) =>
         {
+            // Check if registration is enabled
+            var registrationEnabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
+            if (!registrationEnabled)
+            {
+                return Results.Problem(
+                    detail: "User registration is currently disabled.",
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
             var result = await authService.RegisterAsync(
                 request.Email, 
                 request.Password, 
@@ -263,6 +278,13 @@ public static class AuthEndpoints
             await authService.LogoutAsync(userId);
             return Results.Ok();
         }).RequireAuthorization();
+
+        // Endpoint to check if registration is enabled (for frontend)
+        auth.MapGet("/registration-status", (IConfiguration configuration) =>
+        {
+            var enabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
+            return Results.Ok(new { registrationEnabled = enabled });
+        }).AllowAnonymous();
     }
 }
 

@@ -1,11 +1,12 @@
-using RoadToMillion.Api.Models;
 namespace RoadToMillion.Api.Endpoints;
 
 public static class SnapshotEndpoints
 {
     public static void MapSnapshotEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/accounts/{accountId:int}/snapshots", async (int accountId, ISnapshotService snapshotService) =>
+        var snapshots = app.MapGroup("/api/accounts").RequireAuthorization();
+
+        snapshots.MapGet("/{accountId:int}/snapshots", async (int accountId, ISnapshotService snapshotService) =>
         {
             var result = await snapshotService.GetSnapshotsByAccountAsync(accountId);
             return result.Type switch
@@ -16,7 +17,7 @@ public static class SnapshotEndpoints
             };
         });
 
-        app.MapPost("/api/accounts/{accountId:int}/snapshots", async (int accountId, CreateSnapshotRequest req, ISnapshotService snapshotService) =>
+        snapshots.MapPost("/{accountId:int}/snapshots", async (int accountId, CreateSnapshotRequest req, ISnapshotService snapshotService) =>
         {
             var result = await snapshotService.CreateSnapshotAsync(accountId, req.Amount, req.Date);
             return result.Type switch

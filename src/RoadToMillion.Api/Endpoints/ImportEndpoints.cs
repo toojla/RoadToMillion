@@ -4,7 +4,9 @@ public static class ImportEndpoints
 {
     public static void MapImportEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/import/preview", async (IFormFile file, IImportService importService) =>
+        var import = app.MapGroup("/api/import").RequireAuthorization();
+
+        import.MapPost("/preview", async (IFormFile file, IImportService importService) =>
         {
             var result = await importService.ParsePreviewAsync(file);
             return result.Type switch
@@ -15,7 +17,7 @@ public static class ImportEndpoints
             };
         }).DisableAntiforgery();
 
-        app.MapPost("/api/import/confirm", async (ImportPreview preview, IImportService importService) =>
+        import.MapPost("/confirm", async (ImportPreview preview, IImportService importService) =>
         {
             var result = await importService.ExecuteImportAsync(preview);
             return result.Type switch

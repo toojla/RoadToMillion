@@ -1,0 +1,147 @@
+@page "/register"
+@inject AuthService Auth
+@inject NavigationManager Navigation
+@using RoadToMillion.Web.Services
+
+<PageTitle>Register – Road to Million</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <h3 class="mb-4">Create Account</h3>
+
+        @if (!_registrationEnabled)
+        {
+            <div class="alert alert-warning">
+                <strong>Registration is currently disabled.</strong>
+                <p class="mb-0">Please contact the administrator for account access.</p>
+            </div>
+            <div class="text-center mt-3">
+                <a href="login" class="btn btn-primary">Go to Login</a>
+            </div>
+        }
+        else
+        {
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger">@_errorMessage</div>
+            }
+
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success">@_successMessage</div>
+            }
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="firstName" class="form-label">First Name (Optional)</label>
+                        <input @bind="_firstName" type="text" class="form-control" id="firstName" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="lastName" class="form-label">Last Name (Optional)</label>
+                        <input @bind="_lastName" type="text" class="form-control" id="lastName" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email *</label>
+                        <input @bind="_email" type="email" class="form-control" id="email" placeholder="you@example.com" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password *</label>
+                        <input @bind="_password" type="password" class="form-control" id="password" required />
+                        <div class="form-text">At least 8 characters with uppercase, lowercase, and digit.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password *</label>
+                        <input @bind="_confirmPassword" type="password" class="form-control" id="confirmPassword" required />
+                    </div>
+                    <button @onclick="HandleRegister" class="btn btn-primary w-100" disabled="@_isLoading">
+                        @if (_isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Creating account...</span>
+                        }
+                        else
+                        {
+                            <span>Register</span>
+                        }
+                    </button>
+                    <hr class="my-3" />
+                    <p class="text-center mb-0">
+                        Already have an account? <a href="login">Login here</a>
+                    </p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _firstName = "";
+    private string _lastName = "";
+    private string _email = "";
+    private string _password = "";
+    private string _confirmPassword = "";
+    private string? _errorMessage;
+    private string? _successMessage;
+    private bool _isLoading;
+    private bool _registrationEnabled = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _registrationEnabled = await Auth.IsRegistrationEnabledAsync();
+    }
+
+    private async Task HandleRegister()
+    {
+        _errorMessage = null;
+        _successMessage = null;
+        _isLoading = true;
+
+        try
+        {
+            // Validation
+            if (string.IsNullOrWhiteSpace(_email))
+            {
+                _errorMessage = "Email is required.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_password))
+            {
+                _errorMessage = "Password is required.";
+                return;
+            }
+
+            if (_password != _confirmPassword)
+            {
+                _errorMessage = "Passwords do not match.";
+                return;
+            }
+
+            var result = await Auth.RegisterAsync(
+                _email, 
+                _password, 
+                string.IsNullOrWhiteSpace(_firstName) ? null : _firstName,
+                string.IsNullOrWhiteSpace(_lastName) ? null : _lastName);
+
+            if (result != null)
+            {
+                _successMessage = "Account created successfully! Redirecting to login...";
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                _errorMessage = "Registration failed. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Registration failed: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

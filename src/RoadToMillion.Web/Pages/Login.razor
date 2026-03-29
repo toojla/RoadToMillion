@@ -1,0 +1,88 @@
+@page "/login"
+@inject AuthService Auth
+@inject NavigationManager Navigation
+@using RoadToMillion.Web.Services
+
+<PageTitle>Login – Road to Million</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <h3 class="mb-4">Login</h3>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-danger">@_errorMessage</div>
+        }
+
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input @bind="_email" type="email" class="form-control" id="email" placeholder="you@example.com" />
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input @bind="_password" type="password" class="form-control" id="password" />
+                </div>
+                <button @onclick="HandleLogin" class="btn btn-primary w-100" disabled="@_isLoading">
+                    @if (_isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Logging in...</span>
+                    }
+                    else
+                    {
+                        <span>Login</span>
+                    }
+                </button>
+                @if (_registrationEnabled)
+                {
+                    <hr class="my-3" />
+                    <p class="text-center mb-0">
+                        Don't have an account? <a href="register">Register here</a>
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string? _errorMessage;
+    private bool _isLoading;
+    private bool _registrationEnabled = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _registrationEnabled = await Auth.IsRegistrationEnabledAsync();
+    }
+
+    private async Task HandleLogin()
+    {
+        _errorMessage = null;
+        _isLoading = true;
+
+        try
+        {
+            var result = await Auth.LoginAsync(_email, _password);
+            if (result != null)
+            {
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                _errorMessage = "Invalid email or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Login failed: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

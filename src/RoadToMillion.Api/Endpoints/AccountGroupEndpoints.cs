@@ -1,17 +1,18 @@
-using RoadToMillion.Api.Models;
 namespace RoadToMillion.Api.Endpoints;
 
 public static class AccountGroupEndpoints
 {
     public static void MapAccountGroupEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/account-groups", async (IAccountGroupService accountGroupService) =>
+        var groups = app.MapGroup("/api/account-groups").RequireAuthorization();
+
+        groups.MapGet("", async (IAccountGroupService accountGroupService) =>
         {
-            var groups = await accountGroupService.GetAllAccountGroupsAsync();
-            return Results.Ok(groups);
+            var groupsList = await accountGroupService.GetAllAccountGroupsAsync();
+            return Results.Ok(groupsList);
         });
 
-        app.MapPost("/api/account-groups", async (IAccountGroupService accountGroupService, CreateAccountGroupRequest req) =>
+        groups.MapPost("", async (IAccountGroupService accountGroupService, CreateAccountGroupRequest req) =>
         {
             var result = await accountGroupService.CreateAccountGroupAsync(req.Name);
             return result.Type switch
@@ -23,7 +24,7 @@ public static class AccountGroupEndpoints
             };
         });
 
-        app.MapDelete("/api/account-groups/{id:int}", async (int id, IAccountGroupService accountGroupService) =>
+        groups.MapDelete("/{id:int}", async (int id, IAccountGroupService accountGroupService) =>
         {
             var result = await accountGroupService.DeleteAccountGroupAsync(id);
             return result.Type switch

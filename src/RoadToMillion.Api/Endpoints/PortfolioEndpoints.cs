@@ -8,6 +8,6 @@ public static class PortfolioEndpoints
         {
             var summary = await portfolioService.GetPortfolioSummaryAsync();
             return Results.Ok(summary);
-        });
+        }).RequireAuthorization();
     }
 }

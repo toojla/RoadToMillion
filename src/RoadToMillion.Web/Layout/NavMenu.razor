@@ -1,4 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using RoadToMillion.Web.Services
+@inject AuthService Auth
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Road to Million</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
@@ -29,16 +34,72 @@
                 <span class="bi bi-upload-nav-menu" aria-hidden="true"></span> Import CSV
             </NavLink>
         </div>
+
+        <hr class="my-3" />
+
+        @if (_isAuthenticated)
+        {
+            <div class="nav-item px-3">
+                <button class="nav-link btn btn-link text-start w-100" @onclick="HandleLogout">
+                    <span class="bi bi-box-arrow-right-nav-menu" aria-hidden="true"></span> Logout
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="login">
+                    <span class="bi bi-box-arrow-in-right-nav-menu" aria-hidden="true"></span> Login
+                </NavLink>
+            </div>
+            @if (_registrationEnabled)
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="register">
+                        <span class="bi bi-person-plus-nav-menu" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+            }
+        }
     </nav>
 </div>
 
 @code {
-    private bool collapseNavMenu = true;
+    private bool _collapseNavMenu = true;
+    private bool _isAuthenticated;
+    private bool _registrationEnabled = true;
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private string? NavMenuCssClass => _collapseNavMenu ? "collapse" : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isAuthenticated = await Auth.IsAuthenticatedAsync();
+        _registrationEnabled = await Auth.IsRegistrationEnabledAsync();
+        Auth.OnAuthStateChanged += OnAuthStateChanged;
+    }
+
+    private void OnAuthStateChanged()
+    {
+        InvokeAsync(async () =>
+        {
+            _isAuthenticated = await Auth.IsAuthenticatedAsync();
+            StateHasChanged();
+        });
+    }
 
     private void ToggleNavMenu()
     {
-        collapseNavMenu = !collapseNavMenu;
+        _collapseNavMenu = !_collapseNavMenu;
+    }
+
+    private async Task HandleLogout()
+    {
+        await Auth.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        Auth.OnAuthStateChanged -= OnAuthStateChanged;
     }
 }

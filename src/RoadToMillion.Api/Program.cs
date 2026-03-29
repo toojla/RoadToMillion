@@ -1,6 +1,4 @@
-using Microsoft.EntityFrameworkCore;
 using RoadToMillion.Api.Configuration;
-using RoadToMillion.Api.Data;
 using RoadToMillion.Api.Endpoints;
 using RoadToMillion.ServiceDefaults;
 using Scalar.AspNetCore;
@@ -11,6 +9,9 @@ builder.AddServiceDefaults();
 
 // Database
 builder.AddDatabase();
+
+// Authentication & Authorization
+builder.Services.AddAuthenticationServices(builder.Configuration);
 
 // CORS
 builder.Services.AddCorsPolicy(builder.Configuration);
@@ -41,7 +42,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors();
 
+// Authentication & Authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
+
 // Register endpoint groups
+app.MapAuthEndpoints();
 app.MapPortfolioEndpoints();
 app.MapAccountGroupEndpoints();
 app.MapAccountEndpoints();
