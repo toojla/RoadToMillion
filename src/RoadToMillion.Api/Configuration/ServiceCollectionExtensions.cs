@@ -19,11 +19,17 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddCorsPolicy(this IServiceCollection services)
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration configuration)
     {
+        // Reads AllowedOrigins from config; falls back to localhost for local dev.
+        // In production, set AllowedOrigins__0 app setting to the Static Web App URL.
+        var configured = configuration.GetSection("AllowedOrigins").Get<string[]>()
+            ?.Where(o => !string.IsNullOrWhiteSpace(o)).ToArray();
+        var origins = configured?.Length > 0 ? configured : ["https://localhost:7200"];
+
         services.AddCors(options =>
             options.AddDefaultPolicy(policy =>
-                policy.WithOrigins("https://localhost:7200")
+                policy.WithOrigins(origins)
                     .AllowAnyMethod()
                     .AllowAnyHeader()));
         return services;

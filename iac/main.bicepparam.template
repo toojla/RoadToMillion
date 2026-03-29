@@ -1,0 +1,43 @@
+// Copy this file and rename it, e.g. main.staging.bicepparam, then fill in values.
+// The password is read from an environment variable at deploy time — never hardcode it.
+
+using './main.bicep'
+
+param location = 'swedencentral'
+param webLocation = 'westeurope'
+
+param resourceGroupName = 'rg-roadtomillion-<env>'
+
+param tags = {
+  environment: '<env>'
+  project: 'RoadToMillion'
+}
+
+// Observability
+param workspaceName = 'log-roadtomillion-<env>'
+param appInsightsName = 'appi-roadtomillion-<env>'
+
+// App Service Plan
+param planName = 'asp-roadtomillion-<env>'
+
+// PostgreSQL Flexible Server
+param postgresServerName = 'psql-roadtomillion-<env>'
+param postgresDbName = 'roadtomilliondb'
+param postgresAdminUser = 'rtmadmin'
+// Read from the POSTGRES_ADMIN_PASSWORD environment variable at deploy time.
+param postgresAdminPassword = readEnvironmentVariable('POSTGRES_ADMIN_PASSWORD')
+
+// IP addresses allowed to connect directly to PostgreSQL (e.g. for DBA/local dev access).
+param postgresAllowedIpAddresses = [
+  '<your-public-ip>'
+]
+
+// App Services
+param apiAppName = 'app-roadtomillion-api-<env>'
+
+// Static Web App
+param webAppName = 'stapp-roadtomillion-web-<env>'
+
+// CORS: set to the Static Web App default hostname after first deploy.
+// Get it with: az staticwebapp show --name stapp-roadtomillion-web-<env> --resource-group rg-roadtomillion-<env> --query defaultHostname -o tsv
+param webAppHostname = ''

@@ -13,7 +13,7 @@ builder.AddServiceDefaults();
 builder.AddDatabase();
 
 // CORS
-builder.Services.AddCorsPolicy();
+builder.Services.AddCorsPolicy(builder.Configuration);
 
 // Application Services
 builder.Services.AddApplicationServices();
