@@ -3,6 +3,7 @@
 @inject IJSRuntime JSRuntime
 @using RoadToMillion.Web.Services
 @using RoadToMillion.Web.Models
+@using System.Net
 
 <PageTitle>Dashboard – Road to Million</PageTitle>
 
@@ -11,6 +12,17 @@
 @if (loading)
 {
     <p><em>Loading...</em></p>
+}
+else if (requiresAuth)
+{
+    <div class="alert alert-info">
+        <h4 class="alert-heading">
+            <span class="bi bi-lock-fill me-2"></span>Authentication Required
+        </h4>
+        <p>Please <a href="login" class="alert-link">log in</a> to view your portfolio dashboard.</p>
+        <hr />
+        <p class="mb-0">Don't have an account yet? <a href="register" class="alert-link">Register here</a>.</p>
+    </div>
 }
 else if (summary is null)
 {
@@ -85,6 +97,7 @@ else
 @code {
     private PortfolioSummary? summary;
     private bool loading = true;
+    private bool requiresAuth = false;
     private string sortOrder = "balance-desc";
 
     private string SortOrder
@@ -102,8 +115,22 @@ else
             sortOrder = savedSortOrder;
         }
 
-        summary = await Api.GetPortfolioSummaryAsync();
-        loading = false;
+        try
+        {
+            summary = await Api.GetPortfolioSummaryAsync();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            requiresAuth = true;
+        }
+        catch
+        {
+            // Other errors - summary will remain null and show the generic error
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 
     private async Task OnSortOrderChanged()
