@@ -1,9 +1,8 @@
-using Microsoft.EntityFrameworkCore;
-using RoadToMillion.Api.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace RoadToMillion.Api.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<AccountGroup> AccountGroups => Set<AccountGroup>();
     public DbSet<Account> Accounts => Set<Account>();
@@ -11,6 +10,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder); // Important for Identity!
+
         // AccountGroup
         modelBuilder.Entity<AccountGroup>(entity =>
         {

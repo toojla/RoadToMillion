@@ -1,11 +1,12 @@
-using RoadToMillion.Api.Models;
 namespace RoadToMillion.Api.Endpoints;
 
 public static class AccountEndpoints
 {
     public static void MapAccountEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/account-groups/{groupId:int}/accounts", async (int groupId, IAccountService accountService) =>
+        var accounts = app.MapGroup("/api").RequireAuthorization();
+
+        accounts.MapGet("/account-groups/{groupId:int}/accounts", async (int groupId, IAccountService accountService) =>
         {
             var result = await accountService.GetAccountsByGroupAsync(groupId);
             return result.Type switch
@@ -16,7 +17,7 @@ public static class AccountEndpoints
             };
         });
 
-        app.MapPost("/api/account-groups/{groupId:int}/accounts", async (int groupId, CreateAccountRequest req, IAccountService accountService) =>
+        accounts.MapPost("/account-groups/{groupId:int}/accounts", async (int groupId, CreateAccountRequest req, IAccountService accountService) =>
         {
             var result = await accountService.CreateAccountAsync(groupId, req.Name, req.Description);
             return result.Type switch
@@ -29,7 +30,7 @@ public static class AccountEndpoints
             };
         });
 
-        app.MapDelete("/api/accounts/{id:int}", async (int id, IAccountService accountService) =>
+        accounts.MapDelete("/accounts/{id:int}", async (int id, IAccountService accountService) =>
         {
             var result = await accountService.DeleteAccountAsync(id);
             return result.Type switch
@@ -40,7 +41,7 @@ public static class AccountEndpoints
             };
         });
 
-        app.MapGet("/api/accounts/{id:int}", async (int id, IAccountService accountService) =>
+        accounts.MapGet("/accounts/{id:int}", async (int id, IAccountService accountService) =>
         {
             var result = await accountService.GetAccountByIdAsync(id);
             return result.Type switch
