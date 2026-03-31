@@ -9,7 +9,8 @@ namespace RoadToMillion.Api.Services;
 public class AuthService(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
-    IConfiguration configuration) : IAuthService
+    IConfiguration configuration,
+    ITokenBlacklistService tokenBlacklist) : IAuthService
 {
     public async Task<Result<LoginResponse>> LoginAsync(string email, string password)
     {
@@ -59,10 +60,9 @@ public class AuthService(
         return Result<RegisterResponse>.Created(response, $"/api/users/{user.Id}");
     }
 
-    public async Task<Result> LogoutAsync(string userId)
+    public async Task<Result> LogoutAsync(string jti, DateTimeOffset tokenExpiration)
     {
-        // For JWT, logout is typically handled client-side by removing the token
-        // You could implement token blacklisting here if needed
+        tokenBlacklist.BlacklistToken(jti, tokenExpiration);
         await Task.CompletedTask;
         return Result.Success();
     }

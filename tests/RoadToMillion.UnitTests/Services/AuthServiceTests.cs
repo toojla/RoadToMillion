@@ -40,7 +40,8 @@ public class AuthServiceTests
             .AddInMemoryCollection(configData)
             .Build();
 
-        _sut = new AuthService(_userManager, _signInManager, configuration);
+        var tokenBlacklist = Substitute.For<ITokenBlacklistService>();
+        _sut = new AuthService(_userManager, _signInManager, configuration, tokenBlacklist);
     }
 
     #region LoginAsync Tests
@@ -323,10 +324,11 @@ public class AuthServiceTests
     public async Task LogoutAsync_ShouldReturnSuccess()
     {
         // Arrange
-        var userId = "user-123";
+        var jti = "token-jti-123";
+        var expiration = DateTimeOffset.UtcNow.AddHours(1);
 
         // Act
-        var result = await _sut.LogoutAsync(userId);
+        var result = await _sut.LogoutAsync(jti, expiration);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -334,10 +336,10 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LogoutAsync_WithNullUserId_ShouldStillReturnSuccess()
+    public async Task LogoutAsync_WithNullJti_ShouldStillReturnSuccess()
     {
         // Act
-        var result = await _sut.LogoutAsync(null!);
+        var result = await _sut.LogoutAsync(null!, DateTimeOffset.UtcNow.AddHours(1));
 
         // Assert
         result.IsSuccess.ShouldBeTrue();

@@ -76,9 +76,9 @@
                 _errorMessage = "Invalid email or password.";
             }
         }
-        catch (Exception ex)
+        catch
         {
-            _errorMessage = $"Login failed: {ex.Message}";
+            _errorMessage = "An unexpected error occurred. Please try again later.";
         }
         finally
         {

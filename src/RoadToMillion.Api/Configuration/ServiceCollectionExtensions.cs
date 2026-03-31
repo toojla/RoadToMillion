@@ -23,7 +23,7 @@ public static class ServiceCollectionExtensions
                     options.Password.RequireDigit = true;
                     options.Password.RequireLowercase = true;
                     options.Password.RequireUppercase = true;
-                    options.Password.RequireNonAlphanumeric = false;
+                    options.Password.RequireNonAlphanumeric = true;
                     options.Password.RequiredLength = 8;
 
                     // Lockout settings
@@ -36,6 +36,9 @@ public static class ServiceCollectionExtensions
                 })
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+
+            // Token blacklist (singleton – in-memory, survives the request scope)
+            services.AddSingleton<ITokenBlacklistService, TokenBlacklistService>();
 
             // Add JWT Authentication
             services.AddAuthentication(options =>
@@ -55,6 +58,21 @@ public static class ServiceCollectionExtensions
                         ValidAudience = configuration["Jwt:Audience"],
                         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
                             System.Text.Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!))
+                    };
+
+                    // Reject blacklisted (logged-out) tokens
+                    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                    {
+                        OnTokenValidated = context =>
+                        {
+                            var blacklist = context.HttpContext.RequestServices.GetRequiredService<ITokenBlacklistService>();
+                            var jti = context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+                            if (jti != null && blacklist.IsBlacklisted(jti))
+                            {
+                                context.Fail("Token has been revoked.");
+                            }
+                            return Task.CompletedTask;
+                        }
                     };
                 });
 

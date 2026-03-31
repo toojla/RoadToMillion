@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace RoadToMillion.Api.Endpoints;
@@ -11,6 +12,9 @@ public static class AuthEndpoints
 
         auth.MapPost("/register", async (IAuthService authService, IConfiguration configuration, RegisterRequest request) =>
         {
+            if (!ValidateRequestLengths(request.Email, request.Password, request.FirstName, request.LastName))
+                return Results.BadRequest(new { errors = new { message = new[] { "Invalid input length." } } });
+
             // Check if registration is enabled
             var registrationEnabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
             if (!registrationEnabled)
@@ -37,6 +41,9 @@ public static class AuthEndpoints
 
         auth.MapPost("/login", async (IAuthService authService, LoginRequest request) =>
         {
+            if (!ValidateRequestLengths(request.Email, request.Password))
+                return Results.BadRequest(new { errors = new { message = new[] { "Invalid input length." } } });
+
             var result = await authService.LoginAsync(request.Email, request.Password);
 
             return result.Type switch
@@ -49,11 +56,14 @@ public static class AuthEndpoints
 
         auth.MapPost("/logout", async (IAuthService authService, HttpContext context) =>
         {
-            var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
+            var jti = context.User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+            var expClaim = context.User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Exp)?.Value;
+
+            if (jti == null || expClaim == null)
                 return Results.Unauthorized();
 
-            await authService.LogoutAsync(userId);
+            var expiration = DateTimeOffset.FromUnixTimeSeconds(long.Parse(expClaim));
+            await authService.LogoutAsync(jti, expiration);
             return Results.Ok();
         }).RequireAuthorization();
 
@@ -64,7 +74,23 @@ public static class AuthEndpoints
             return Results.Ok(new { registrationEnabled = enabled });
         }).AllowAnonymous();
     }
+
+    private static bool ValidateRequestLengths(string email, string password, string? firstName = null, string? lastName = null)
+    {
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 256) return false;
+        if (string.IsNullOrWhiteSpace(password) || password.Length > 128) return false;
+        if (firstName?.Length > 100) return false;
+        if (lastName?.Length > 100) return false;
+        return true;
+    }
 }
 
-public record LoginRequest(string Email, string Password);
-public record RegisterRequest(string Email, string Password, string? FirstName, string? LastName);
+public record LoginRequest(
+    [property: Required, MaxLength(256)] string Email,
+    [property: Required, MaxLength(128)] string Password);
+
+public record RegisterRequest(
+    [property: Required, MaxLength(256)] string Email,
+    [property: Required, MaxLength(128)] string Password,
+    [property: MaxLength(100)] string? FirstName,
+    [property: MaxLength(100)] string? LastName);

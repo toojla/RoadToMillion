@@ -48,7 +48,7 @@
                     <div class="mb-3">
                         <label for="password" class="form-label">Password *</label>
                         <input @bind="_password" type="password" class="form-control" id="password" required />
-                        <div class="form-text">At least 8 characters with uppercase, lowercase, and digit.</div>
+                        <div class="form-text">At least 8 characters with uppercase, lowercase, digit, and special character.</div>
                     </div>
                     <div class="mb-3">
                         <label for="confirmPassword" class="form-label">Confirm Password *</label>
@@ -135,9 +135,9 @@
                 _errorMessage = "Registration failed. Please try again.";
             }
         }
-        catch (Exception ex)
+        catch
         {
-            _errorMessage = $"Registration failed: {ex.Message}";
+            _errorMessage = "An unexpected error occurred. Please try again later.";
         }
         finally
         {

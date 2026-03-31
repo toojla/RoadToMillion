@@ -6,7 +6,7 @@ public interface IAuthService
 
     Task<Result<RegisterResponse>> RegisterAsync(string email, string password, string? firstName, string? lastName);
 
-    Task<Result> LogoutAsync(string userId);
+    Task<Result> LogoutAsync(string jti, DateTimeOffset tokenExpiration);
 }
 
 public record LoginResponse(string Token, string Email, string? FirstName, string? LastName);

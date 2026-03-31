@@ -191,11 +191,12 @@ public class AuthEndpointLogicTests
     public async Task Logout_ShouldReturnSuccess()
     {
         // Arrange
-        var userId = "user-123";
-        _authService.LogoutAsync(userId).Returns(Task.FromResult(Result.Success()));
+        var jti = "token-jti-123";
+        var expiration = DateTimeOffset.UtcNow.AddHours(1);
+        _authService.LogoutAsync(jti, expiration).Returns(Task.FromResult(Result.Success()));
 
         // Act
-        var result = await _authService.LogoutAsync(userId);
+        var result = await _authService.LogoutAsync(jti, expiration);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
