@@ -1,6 +1,6 @@
 # Road To Million 💰
 
-A personal finance tracking application built with .NET Aspire, Blazor WebAssembly, and ASP.NET Core Web API. Track your journey to financial success by managing account groups, accounts, and balance snapshots over time.
+A **single-user** personal finance tracking application built with .NET Aspire, Blazor WebAssembly, and ASP.NET Core Web API. Track your journey to financial success by managing account groups, accounts, and balance snapshots over time.
 
 ## 🏗️ Architecture
 
@@ -22,6 +22,7 @@ This solution uses a modern distributed architecture orchestrated by .NET Aspire
 - **Entity Framework Core** with PostgreSQL
 - **.NET Aspire** for orchestration and observability
 - **OpenTelemetry** for distributed tracing and metrics
+- **ASP.NET Core Identity** with **JWT Bearer** authentication
 - **Scalar** for API documentation (development)
 - **pgAdmin** for PostgreSQL database management (development)
 
@@ -37,6 +38,7 @@ The API follows clean architecture principles with:
   - `ISnapshotService` - Balance snapshot management
   - `ICsvImportService` - CSV parsing and validation
   - `IImportService` - Import orchestration
+  - `IAuthService` - User authentication and registration
 - **Result Pattern** - Consistent error handling across services
 - **Global Usings** - Reduced boilerplate in service files
 - **Configuration Extensions** - Organized service registration
@@ -145,6 +147,25 @@ AccountGroup (e.g., "Investments", "Savings")
 
 **Note**: When running with Aspire, the connection string is automatically injected by the AppHost and doesn't need manual configuration.
 
+**JWT Authentication** (`appsettings.json`):
+```json
+{
+  "Jwt": {
+    "Key": "YourSuperSecretKeyThatIsAtLeast32CharactersLong!",
+    "Issuer": "RoadToMillion.Api",
+    "Audience": "RoadToMillion.Web",
+    "ExpirationInMinutes": 60
+  },
+  "Features": {
+    "EnableUserRegistration": true
+  }
+}
+```
+
+> **Important**: Replace the JWT key with a secure value in production (e.g., via environment variables or Azure Key Vault).
+
+**Initial Setup**: On first launch, navigate to `/register` to create your user account. Once your account is created, set `Features:EnableUserRegistration` to `false` to lock down registration.
+
 **CORS**: Configured to allow requests from `https://localhost:7200`
 
 ### PostgreSQL with Aspire
@@ -197,8 +218,18 @@ The `ServiceDefaults` project provides:
 
 ## 📁 Features
 
+### Authentication
+
+This is a **single-user application**. Authentication protects your personal financial data behind a login.
+
+- **JWT-based authentication** - All API endpoints require a valid Bearer token
+- **One-time registration** - The registration page is used once to create your user account during initial setup. After that, disable registration by setting `Features:EnableUserRegistration` to `false` in your configuration.
+- **Token management** - 60-minute token expiration, stored in browser `localStorage`
+- **Password requirements** - Minimum 8 characters, requires digit, uppercase, and lowercase letters
+
 ### API Endpoints
 
+- **Auth** - Login, register, logout, and registration status
 - **Portfolio** - Aggregate portfolio views
 - **Account Groups** - CRUD operations for account groups
 - **Accounts** - CRUD operations for accounts
@@ -207,6 +238,7 @@ The `ServiceDefaults` project provides:
 
 ### Web Application Features
 
+- **Login/Register** - Login page for daily use; registration page for initial one-time account setup
 - **Dashboard** - Overview of all account groups and total portfolio value
 - **Account Management** - Create and manage account groups and accounts
 - **Balance Tracking** - Record balance snapshots for each account
@@ -348,7 +380,7 @@ This project is licensed under the MIT License.
 - [ ] Budget tracking and alerts
 - [ ] Multi-currency support
 - [ ] Mobile app (Blazor Hybrid)
-- [ ] Authentication and multi-user support
+- [x] Authentication (single-user with JWT)
 
 ## 🛠️ Development
 
