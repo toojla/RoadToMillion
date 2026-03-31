@@ -44,7 +44,7 @@ The API follows clean architecture principles with:
 - **Configuration Extensions** - Organized service registration
 
 **Benefits**:
-- ✅ Easy to unit test (89 tests, 85 passing)
+- ✅ Easy to unit test (111 tests, 107 passing)
 - ✅ Clear separation of concerns
 - ✅ Reusable business logic
 - ✅ Consistent error handling
@@ -225,7 +225,10 @@ This is a **single-user application**. Authentication protects your personal fin
 - **JWT-based authentication** - All API endpoints require a valid Bearer token
 - **One-time registration** - The registration page is used once to create your user account during initial setup. After that, disable registration by setting `Features:EnableUserRegistration` to `false` in your configuration.
 - **Token management** - 60-minute token expiration, stored in browser `localStorage`
-- **Password requirements** - Minimum 8 characters, requires digit, uppercase, and lowercase letters
+- **Token blacklisting** - Logging out immediately revokes the token server-side
+- **Rate limiting** - Auth endpoints are rate-limited to prevent brute-force attacks
+- **Account lockout** - 5 failed login attempts locks the account for 15 minutes
+- **Password requirements** - Minimum 8 characters, requires digit, uppercase, lowercase, and special character
 
 ### API Endpoints
 
@@ -400,8 +403,8 @@ dotnet test --verbosity detailed
 ```
 
 **Test Statistics**:
-- 89 total tests
-- 85 passing
+- 111 total tests
+- 107 passing
 - 4 skipped (transaction-dependent tests)
 - Test frameworks: xUnit, Shouldly, NSubstitute
 - Coverage: All service layers
@@ -432,41 +435,6 @@ db.Database.Migrate();
 ```bash
 dotnet build
 ```
-
-### Running Tests
-
-```bash
-dotnet test
-```
-
-## 📝 Project Structure
-
-```
-RoadToMillion/
-├── RoadToMillion.AppHost/          # Aspire orchestration
-├── RoadToMillion.Api/              # Backend API
-│   ├── Data/                       # DbContext and migrations
-│   ├── Endpoints/                  # Minimal API endpoints
-│   ├── Models/                     # Domain entities
-│   └── Services/                   # Business logic (CSV import, etc.)
-├── RoadToMillion.Web/              # Blazor WASM frontend
-│   ├── Components/                 # Blazor components
-│   ├── Services/                   # HTTP client services (ApiClient)
-│   └── wwwroot/                    # Static assets
-└── RoadToMillion.ServiceDefaults/  # Shared Aspire configuration
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
 
 ## 🔗 Links
 
