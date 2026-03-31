@@ -6,7 +6,8 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        var auth = app.MapGroup("/api/auth");
+        var auth = app.MapGroup("/api/auth")
+            .RequireRateLimiting("auth");
 
         auth.MapPost("/register", async (IAuthService authService, IConfiguration configuration, RegisterRequest request) =>
         {

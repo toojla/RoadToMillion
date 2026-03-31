@@ -1,4 +1,6 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace RoadToMillion.Api.Configuration;
 
@@ -23,6 +25,11 @@ public static class ServiceCollectionExtensions
                     options.Password.RequireUppercase = true;
                     options.Password.RequireNonAlphanumeric = false;
                     options.Password.RequiredLength = 8;
+
+                    // Lockout settings
+                    options.Lockout.MaxFailedAccessAttempts = 5;
+                    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                    options.Lockout.AllowedForNewUsers = true;
 
                     // User settings
                     options.User.RequireUniqueEmail = true;
@@ -65,6 +72,22 @@ public static class ServiceCollectionExtensions
             services.AddScoped<ISnapshotService, SnapshotService>();
             services.AddScoped<IImportService, ImportService>();
             services.AddScoped<IAuthService, AuthService>();
+            return services;
+        }
+
+        public IServiceCollection AddRateLimitingPolicies()
+        {
+            services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.AddFixedWindowLimiter("auth", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 10;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 0;
+                });
+            });
             return services;
         }
 

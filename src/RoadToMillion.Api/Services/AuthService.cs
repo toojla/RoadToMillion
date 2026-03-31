@@ -17,7 +17,9 @@ public class AuthService(
         if (user == null)
             return Result<LoginResponse>.BadRequest("Invalid email or password.");
 
-        var result = await signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
+        var result = await signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
+        if (result.IsLockedOut)
+            return Result<LoginResponse>.BadRequest("Account is temporarily locked due to too many failed attempts. Please try again later.");
         if (!result.Succeeded)
             return Result<LoginResponse>.BadRequest("Invalid email or password.");
 
@@ -31,7 +33,12 @@ public class AuthService(
     {
         var existingUser = await userManager.FindByEmailAsync(email);
         if (existingUser != null)
-            return Result<RegisterResponse>.Conflict("User with this email already exists.");
+        {
+            // Return a generic success to prevent user enumeration
+            return Result<RegisterResponse>.Created(
+                new RegisterResponse(Guid.Empty.ToString(), email),
+                $"/api/users/{Guid.Empty}");
+        }
 
         var user = new ApplicationUser
         {

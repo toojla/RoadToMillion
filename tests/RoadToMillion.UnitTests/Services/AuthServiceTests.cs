@@ -61,7 +61,7 @@ public class AuthServiceTests
         };
 
         _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
-        _signInManager.CheckPasswordSignInAsync(user, password, false)
+        _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Success));
 
         // Act
@@ -112,7 +112,7 @@ public class AuthServiceTests
         };
 
         _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
-        _signInManager.CheckPasswordSignInAsync(user, password, false)
+        _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Failed));
 
         // Act
@@ -138,7 +138,7 @@ public class AuthServiceTests
         };
 
         _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
-        _signInManager.CheckPasswordSignInAsync(user, password, false)
+        _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.LockedOut));
 
         // Act
@@ -147,6 +147,7 @@ public class AuthServiceTests
         // Assert
         result.IsSuccess.ShouldBeFalse();
         result.Type.ShouldBe(ResultType.BadRequest);
+        result.ErrorMessage.ShouldContain("temporarily locked");
     }
 
     [Fact]
@@ -165,7 +166,7 @@ public class AuthServiceTests
         };
 
         _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
-        _signInManager.CheckPasswordSignInAsync(user, password, false)
+        _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Success));
 
         // Act
@@ -214,7 +215,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_WithExistingEmail_ShouldReturnConflict()
+    public async Task RegisterAsync_WithExistingEmail_ShouldReturnCreatedToPreventEnumeration()
     {
         // Arrange
         var email = "existing@example.com";
@@ -231,11 +232,13 @@ public class AuthServiceTests
         // Act
         var result = await _sut.RegisterAsync(email, password, null, null);
 
-        // Assert
-        result.IsSuccess.ShouldBeFalse();
-        result.Type.ShouldBe(ResultType.Conflict);
-        result.ErrorMessage.ShouldBe("User with this email already exists.");
+        // Assert — returns Created to prevent user enumeration (attacker cannot tell if email exists)
+        result.IsSuccess.ShouldBeTrue();
+        result.Type.ShouldBe(ResultType.Created);
+        result.Data.ShouldNotBeNull();
+        result.Data.Email.ShouldBe(email);
 
+        // Verify no user was actually created
         await _userManager.DidNotReceive().CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>());
     }
 
@@ -360,7 +363,7 @@ public class AuthServiceTests
         };
 
         _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
-        _signInManager.CheckPasswordSignInAsync(user, password, false)
+        _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Success));
 
         // Act
@@ -393,7 +396,7 @@ public class AuthServiceTests
         };
 
         _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
-        _signInManager.CheckPasswordSignInAsync(user, password, false)
+        _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Success));
 
         var beforeLogin = DateTime.UtcNow;

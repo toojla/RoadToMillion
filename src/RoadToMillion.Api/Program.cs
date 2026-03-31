@@ -16,6 +16,9 @@ builder.Services.AddAuthenticationServices(builder.Configuration);
 // CORS
 builder.Services.AddCorsPolicy(builder.Configuration);
 
+// Rate Limiting
+builder.Services.AddRateLimitingPolicies();
+
 // Application Services
 builder.Services.AddApplicationServices();
 
@@ -41,6 +44,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseRateLimiter();
 
 // Authentication & Authorization middleware
 app.UseAuthentication();
