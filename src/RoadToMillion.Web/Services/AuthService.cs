@@ -1,14 +1,14 @@
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.JSInterop;
 using RoadToMillion.Web.Models;
 
 namespace RoadToMillion.Web.Services;
 
-public class AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
+public class AuthService(HttpClient httpClient, IJSRuntime jsRuntime, IConfiguration configuration)
 {
     private string? _token;
-    private bool? _registrationEnabled;
 
     public event Action? OnAuthStateChanged;
 
@@ -61,22 +61,10 @@ public class AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
         return !string.IsNullOrEmpty(token);
     }
 
-    public async Task<bool> IsRegistrationEnabledAsync()
+    public Task<bool> IsRegistrationEnabledAsync()
     {
-        if (_registrationEnabled.HasValue)
-            return _registrationEnabled.Value;
-
-        try
-        {
-            var response = await httpClient.GetFromJsonAsync<RegistrationStatusResponse>("/api/auth/registration-status");
-            _registrationEnabled = response?.RegistrationEnabled ?? false;
-            return _registrationEnabled.Value;
-        }
-        catch
-        {
-            _registrationEnabled = false;
-            return false;
-        }
+        var enabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
+        return Task.FromResult(enabled);
     }
 
     private async Task SetTokenAsync(string token)
