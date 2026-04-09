@@ -3,6 +3,10 @@
     <Project Path="orchestration/RoadToMillion.AppHost/RoadToMillion.AppHost.csproj" />
     <Project Path="orchestration/RoadToMillion.ServiceDefaults/RoadToMillion.ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="CLAUDE.md" />
+    <File Path="README.md" />
+  </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/RoadToMillion.UnitTests/RoadToMillion.UnitTests.csproj" Id="440b7852-2793-4e5c-8568-30e78893f731" />
   </Folder>
