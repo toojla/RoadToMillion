@@ -22,7 +22,8 @@ public class AccountService(AppDbContext db) : IAccountService
             return new AccountResponse(
                 a.Id, a.Name, a.Description,
                 latest?.Amount ?? 0m,
-                a.BalanceSnapshots.Any());
+                a.BalanceSnapshots.Any(),
+                a.Type);
         });
 
         return Result<IEnumerable<AccountResponse>>.Success(result);
@@ -45,12 +46,13 @@ public class AccountService(AppDbContext db) : IAccountService
         var response = new AccountResponse(
             account.Id, account.Name, account.Description,
             latest?.Amount ?? 0m,
-            account.BalanceSnapshots.Any());
+            account.BalanceSnapshots.Any(),
+            account.Type);
 
         return Result<AccountResponse>.Success(response);
     }
 
-    public async Task<Result<AccountResponse>> CreateAccountAsync(int groupId, string name, string? description)
+    public async Task<Result<AccountResponse>> CreateAccountAsync(int groupId, string name, string? description, AccountType type = AccountType.Regular)
     {
         var group = await db.AccountGroups.FindAsync(groupId);
         if (group is null)
@@ -69,12 +71,13 @@ public class AccountService(AppDbContext db) : IAccountService
         {
             AccountGroupId = groupId,
             Name = name.Trim(),
-            Description = description?.Trim()
+            Description = description?.Trim(),
+            Type = type
         };
         db.Accounts.Add(account);
         await db.SaveChangesAsync();
 
-        var response = new AccountResponse(account.Id, account.Name, account.Description, 0m, false);
+        var response = new AccountResponse(account.Id, account.Name, account.Description, 0m, false, account.Type);
         return Result<AccountResponse>.Created(response, $"/api/accounts/{account.Id}");
     }
 

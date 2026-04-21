@@ -257,6 +257,7 @@ public class AccountServiceTests : IDisposable
         result.Data.Description.ShouldBe("Primary savings");
         result.Data.CurrentBalance.ShouldBe(0m);
         result.Data.HasSnapshots.ShouldBeFalse();
+        result.Data.Type.ShouldBe(AccountType.Regular);
         result.Location.ShouldBe($"/api/accounts/{result.Data.Id}");
 
         // Verify in database
@@ -264,6 +265,27 @@ public class AccountServiceTests : IDisposable
         saved.ShouldNotBeNull();
         saved.Name.ShouldBe("Main Account");
         saved.AccountGroupId.ShouldBe(group.Id);
+    }
+
+    [Fact]
+    public async Task CreateAccountAsync_WithServicePensionType_ShouldCreatePensionAccount()
+    {
+        // Arrange
+        var group = new AccountGroup { Name = "Pension" };
+        _db.AccountGroups.Add(group);
+        await _db.SaveChangesAsync();
+
+        // Act
+        var result = await _sut.CreateAccountAsync(group.Id, "ITP2", null, AccountType.ServicePension);
+
+        // Assert
+        result.IsSuccess.ShouldBeTrue();
+        result.Data.ShouldNotBeNull();
+        result.Data.Type.ShouldBe(AccountType.ServicePension);
+
+        var saved = await _db.Accounts.FirstOrDefaultAsync();
+        saved.ShouldNotBeNull();
+        saved.Type.ShouldBe(AccountType.ServicePension);
     }
 
     [Fact]

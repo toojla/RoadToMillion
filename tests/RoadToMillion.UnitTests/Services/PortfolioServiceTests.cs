@@ -182,7 +182,7 @@ public class PortfolioServiceTests : IDisposable
         var snapshot = new BalanceSnapshot
         {
             Account = account,
-            Amount = 1_500_000m, // More than the goal
+            Amount = 1_500_000m,
             Date = DateOnly.FromDateTime(DateTime.Today),
             RecordedAt = DateTime.UtcNow
         };
@@ -198,6 +198,45 @@ public class PortfolioServiceTests : IDisposable
         // Assert
         result.CurrentTotal.ShouldBe(1_500_000m);
         result.RemainingAmount.ShouldBe(0m);
-        result.ProgressPercentage.ShouldBe(100m); // Should be capped at 100%
+        result.ProgressPercentage.ShouldBe(100m);
+    }
+
+    [Fact]
+    public async Task GetPortfolioSummaryAsync_WithPensionAccounts_ShouldExcludeFromGoalTotal()
+    {
+        // Arrange
+        var group = new AccountGroup { Name = "Mixed" };
+        var regular = new Account { Name = "ISK", AccountGroup = group, Type = AccountType.Regular };
+        var pension = new Account { Name = "ITP2", AccountGroup = group, Type = AccountType.ServicePension };
+
+        regular.BalanceSnapshots.Add(new BalanceSnapshot
+        {
+            Account = regular,
+            Amount = 200_000m,
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            RecordedAt = DateTime.UtcNow
+        });
+
+        pension.BalanceSnapshots.Add(new BalanceSnapshot
+        {
+            Account = pension,
+            Amount = 300_000m,
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            RecordedAt = DateTime.UtcNow
+        });
+
+        group.Accounts.Add(regular);
+        group.Accounts.Add(pension);
+        _db.AccountGroups.Add(group);
+        await _db.SaveChangesAsync();
+
+        // Act
+        var result = await _sut.GetPortfolioSummaryAsync();
+
+        // Assert
+        result.CurrentTotal.ShouldBe(200_000m);          // pension excluded
+        result.PensionTotal.ShouldBe(300_000m);           // pension tracked separately
+        result.RemainingAmount.ShouldBe(800_000m);
+        result.Groups.First().CurrentTotal.ShouldBe(200_000m);
     }
 }

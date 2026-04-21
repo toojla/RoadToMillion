@@ -19,7 +19,7 @@ public static class AccountEndpoints
 
         accounts.MapPost("/account-groups/{groupId:int}/accounts", async (int groupId, CreateAccountRequest req, IAccountService accountService) =>
         {
-            var result = await accountService.CreateAccountAsync(groupId, req.Name, req.Description);
+            var result = await accountService.CreateAccountAsync(groupId, req.Name, req.Description, req.Type);
             return result.Type switch
             {
                 ResultType.Created => Results.Created(result.Location!, result.Data),

@@ -6,7 +6,7 @@ public interface IAccountService
 
     Task<Result<AccountResponse>> GetAccountByIdAsync(int id);
 
-    Task<Result<AccountResponse>> CreateAccountAsync(int groupId, string name, string? description);
+    Task<Result<AccountResponse>> CreateAccountAsync(int groupId, string name, string? description, AccountType type = AccountType.Regular);
 
     Task<Result> DeleteAccountAsync(int id);
 }

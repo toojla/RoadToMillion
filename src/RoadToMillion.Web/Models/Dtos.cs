@@ -1,5 +1,11 @@
 namespace RoadToMillion.Web.Models;
 
+public enum AccountType
+{
+    Regular = 0,
+    ServicePension = 1
+}
+
 public record GroupSummary(int Id, string Name, decimal CurrentTotal);
 
 public record PortfolioSummary(
@@ -7,11 +13,12 @@ public record PortfolioSummary(
     decimal GoalAmount,
     decimal RemainingAmount,
     decimal ProgressPercentage,
+    decimal PensionTotal,
     List<GroupSummary> Groups);
 
 public record AccountGroupResponse(int Id, string Name, decimal CurrentTotal);
 
-public record AccountResponse(int Id, string Name, string? Description, decimal CurrentBalance, bool HasSnapshots);
+public record AccountResponse(int Id, string Name, string? Description, decimal CurrentBalance, bool HasSnapshots, AccountType Type);
 
 public record SnapshotResponse(int Id, decimal Amount, DateOnly Date, DateTime RecordedAt, bool IsMostRecent);
 
