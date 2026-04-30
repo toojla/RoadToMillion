@@ -27,9 +27,9 @@ public class ApiClient(HttpClient http)
     public Task<List<AccountResponse>?> GetAccountsAsync(int groupId) =>
         http.GetFromJsonAsync<List<AccountResponse>>($"api/account-groups/{groupId}/accounts");
 
-    public async Task<AccountResponse?> CreateAccountAsync(int groupId, string name, string? description)
+    public async Task<AccountResponse?> CreateAccountAsync(int groupId, string name, string? description, AccountType type = AccountType.Regular)
     {
-        var response = await http.PostAsJsonAsync($"api/account-groups/{groupId}/accounts", new { name, description });
+        var response = await http.PostAsJsonAsync($"api/account-groups/{groupId}/accounts", new { name, description, type = (int)type });
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<AccountResponse>();
     }

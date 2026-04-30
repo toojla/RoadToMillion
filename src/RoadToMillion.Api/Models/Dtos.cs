@@ -9,6 +9,7 @@ public record PortfolioSummary(
     decimal GoalAmount,
     decimal RemainingAmount,
     decimal ProgressPercentage,
+    decimal PensionTotal,
     IEnumerable<GroupSummary> Groups);
 
 // --- Account Group responses ---
@@ -17,7 +18,7 @@ public record AccountGroupResponse(int Id, string Name, decimal CurrentTotal);
 
 // --- Account responses ---
 
-public record AccountResponse(int Id, string Name, string? Description, decimal CurrentBalance, bool HasSnapshots);
+public record AccountResponse(int Id, string Name, string? Description, decimal CurrentBalance, bool HasSnapshots, AccountType Type);
 
 // --- Snapshot responses ---
 

@@ -53,6 +53,12 @@ else
                 @summary.RemainingAmount.ToString("N0") SEK remaining to reach
                 @summary.GoalAmount.ToString("N0") SEK
             </p>
+            @if (summary.PensionTotal > 0)
+            {
+                <p class="text-muted mb-0">
+                    <small>Service pension (tracked separately): @summary.PensionTotal.ToString("N0") SEK</small>
+                </p>
+            }
         </div>
     </div>
 

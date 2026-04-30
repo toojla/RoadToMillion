@@ -56,8 +56,16 @@ else
                             <tbody>
                                 @foreach (var acc in accs)
                                 {
-                                    <tr>
-                                        <td><a href="account/@acc.Id">@acc.Name</a></td>
+                                    <tr class="@(acc.Type == AccountType.ServicePension ? "table-warning" : "")">
+                                        <td>
+                                            <a href="account/@acc.Id">@acc.Name</a>
+                                            @if (acc.Type == AccountType.ServicePension)
+                                            {
+                                                <span class="badge ms-2" style="background-color:#f59e0b;color:#1c1c1c;font-size:0.7em;">
+                                                    Pension
+                                                </span>
+                                            }
+                                        </td>
                                         <td>@acc.Description</td>
                                         <td class="text-end">
                                             @(acc.HasSnapshots ? acc.CurrentBalance.ToString("N0") + " SEK" : "No snapshots yet")
@@ -83,6 +91,11 @@ else
                            @bind="newAccountName[group.Id]" @bind:event="oninput" />
                     <input class="form-control form-control-sm" placeholder="Description (optional)"
                            @bind="newAccountDesc[group.Id]" @bind:event="oninput" />
+                    <select class="form-select form-select-sm" style="max-width:160px;"
+                            @bind="newAccountType[group.Id]">
+                        <option value="@AccountType.Regular">Regular</option>
+                        <option value="@AccountType.ServicePension">Service Pension</option>
+                    </select>
                     <button class="btn btn-sm btn-outline-primary"
                             @onclick="() => CreateAccountAsync(group.Id)"
                             disabled="@(!newAccountName.TryGetValue(group.Id, out var n) || string.IsNullOrWhiteSpace(n))">
@@ -108,6 +121,7 @@ else
     private Dictionary<int, List<AccountResponse>> accounts = [];
     private Dictionary<int, string?> newAccountName = [];
     private Dictionary<int, string?> newAccountDesc = [];
+    private Dictionary<int, AccountType> newAccountType = [];
     private Dictionary<int, string?> accountErrors = [];
     private string newGroupName = string.Empty;
     private string? groupError;
@@ -127,6 +141,7 @@ else
             accounts[g.Id] = await Api.GetAccountsAsync(g.Id) ?? [];
             newAccountName.TryAdd(g.Id, string.Empty);
             newAccountDesc.TryAdd(g.Id, string.Empty);
+            newAccountType.TryAdd(g.Id, AccountType.Regular);
         }
     }
 
@@ -163,9 +178,11 @@ else
         {
             var name = newAccountName.GetValueOrDefault(groupId) ?? string.Empty;
             var desc = newAccountDesc.GetValueOrDefault(groupId);
-            await Api.CreateAccountAsync(groupId, name, string.IsNullOrWhiteSpace(desc) ? null : desc);
+            var type = newAccountType.GetValueOrDefault(groupId, AccountType.Regular);
+            await Api.CreateAccountAsync(groupId, name, string.IsNullOrWhiteSpace(desc) ? null : desc, type);
             newAccountName[groupId] = string.Empty;
             newAccountDesc[groupId] = string.Empty;
+            newAccountType[groupId] = AccountType.Regular;
             accounts[groupId] = await Api.GetAccountsAsync(groupId) ?? [];
         }
         catch (HttpRequestException ex)
