@@ -61,7 +61,7 @@ public class AuthServiceTests
             LastName = "Doe"
         };
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(user));
         _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Success));
 
@@ -88,7 +88,7 @@ public class AuthServiceTests
         var email = "nonexistent@example.com";
         var password = "Test123!";
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser>(null!));
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(null));
 
         // Act
         var result = await _sut.LoginAsync(email, password);
@@ -112,7 +112,7 @@ public class AuthServiceTests
             UserName = email
         };
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(user));
         _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Failed));
 
@@ -138,7 +138,7 @@ public class AuthServiceTests
             UserName = email
         };
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(user));
         _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.LockedOut));
 
@@ -148,7 +148,7 @@ public class AuthServiceTests
         // Assert
         result.IsSuccess.ShouldBeFalse();
         result.Type.ShouldBe(ResultType.BadRequest);
-        result.ErrorMessage.ShouldContain("temporarily locked");
+        result.ErrorMessage.ShouldNotBeNull().ShouldContain("temporarily locked");
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class AuthServiceTests
             LastName = null
         };
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(user));
         _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Success));
 
@@ -192,7 +192,7 @@ public class AuthServiceTests
         var firstName = "Jane";
         var lastName = "Smith";
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser>(null!));
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(null));
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), password)
             .Returns(Task.FromResult(IdentityResult.Success));
 
@@ -228,7 +228,7 @@ public class AuthServiceTests
             UserName = email
         };
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult(existingUser)!);
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(existingUser));
 
         // Act
         var result = await _sut.RegisterAsync(email, password, null, null);
@@ -250,7 +250,7 @@ public class AuthServiceTests
         var email = "newuser@example.com";
         var password = "weak";
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser>(null!));
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(null));
         
         var identityErrors = new[]
         {
@@ -267,7 +267,7 @@ public class AuthServiceTests
         // Assert
         result.IsSuccess.ShouldBeFalse();
         result.Type.ShouldBe(ResultType.BadRequest);
-        result.ErrorMessage.ShouldContain("Password is too short");
+        result.ErrorMessage.ShouldNotBeNull().ShouldContain("Password is too short");
         result.ErrorMessage.ShouldContain("Password must contain uppercase letter");
     }
 
@@ -278,7 +278,7 @@ public class AuthServiceTests
         var email = "newuser@example.com";
         var password = "Test123!";
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser>(null!));
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(null));
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), password)
             .Returns(Task.FromResult(IdentityResult.Success));
 
@@ -303,7 +303,7 @@ public class AuthServiceTests
         var email = "test@example.com";
         var password = "Test123!";
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser>(null!));
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(null));
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), password)
             .Returns(Task.FromResult(IdentityResult.Success));
 
@@ -364,7 +364,7 @@ public class AuthServiceTests
             FirstName = "John"
         };
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(user));
         _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Success));
 
@@ -397,7 +397,7 @@ public class AuthServiceTests
             UserName = email
         };
 
-        _userManager.FindByEmailAsync(email).Returns(Task.FromResult(user)!);
+        _userManager.FindByEmailAsync(email).Returns(Task.FromResult<ApplicationUser?>(user));
         _signInManager.CheckPasswordSignInAsync(user, password, true)
             .Returns(Task.FromResult(SignInResult.Success));
 

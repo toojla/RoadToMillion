@@ -100,7 +100,7 @@ public class ImportServiceTests : IDisposable
         // Assert
         result.IsSuccess.ShouldBeFalse();
         result.Type.ShouldBe(ResultType.BadRequest);
-        result.ErrorMessage.ShouldContain("Required columns are missing");
+        result.ErrorMessage.ShouldNotBeNull().ShouldContain("Required columns are missing");
     }
 
     #endregion
