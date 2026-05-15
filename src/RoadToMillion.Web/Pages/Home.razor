@@ -4,6 +4,7 @@
 @using RoadToMillion.Web.Services
 @using RoadToMillion.Web.Models
 @using System.Net
+@using System.Globalization
 
 <PageTitle>Dashboard – Road to Million</PageTitle>
 
@@ -53,7 +54,7 @@ else
             </p>
             <div class="progress mb-2" style="height: 24px;">
                 <div class="progress-bar bg-success" role="progressbar"
-                     style="width: @summary.ProgressPercentage%"
+                     style="width: @summary.ProgressPercentage.ToString("0.##", CultureInfo.InvariantCulture)%"
                      aria-valuenow="@summary.ProgressPercentage" aria-valuemin="0" aria-valuemax="100">
                     @summary.ProgressPercentage.ToString("F1")%
                 </div>
