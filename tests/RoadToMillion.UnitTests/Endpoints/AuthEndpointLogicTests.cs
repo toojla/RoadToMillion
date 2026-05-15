@@ -12,7 +12,6 @@ namespace RoadToMillion.UnitTests.Endpoints;
 public class AuthEndpointLogicTests
 {
     private readonly IAuthService _authService;
-    private IConfiguration _configuration;
 
     public AuthEndpointLogicTests()
     {
@@ -29,12 +28,12 @@ public class AuthEndpointLogicTests
         {
             { "Features:EnableUserRegistration", "true" }
         };
-        _configuration = new ConfigurationBuilder()
+        var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)
             .Build();
 
         // Act
-        var enabled = _configuration.GetValue<bool>("Features:EnableUserRegistration", true);
+        var enabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
 
         // Assert
         enabled.ShouldBeTrue();
@@ -48,12 +47,12 @@ public class AuthEndpointLogicTests
         {
             { "Features:EnableUserRegistration", "false" }
         };
-        _configuration = new ConfigurationBuilder()
+        var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)
             .Build();
 
         // Act
-        var enabled = _configuration.GetValue<bool>("Features:EnableUserRegistration", true);
+        var enabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
 
         // Assert
         enabled.ShouldBeFalse();
@@ -64,12 +63,12 @@ public class AuthEndpointLogicTests
     {
         // Arrange
         var configData = new Dictionary<string, string?>();
-        _configuration = new ConfigurationBuilder()
+        var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)
             .Build();
 
         // Act
-        var enabled = _configuration.GetValue<bool>("Features:EnableUserRegistration", true);
+        var enabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
 
         // Assert
         enabled.ShouldBeTrue(); // Default value
@@ -83,11 +82,11 @@ public class AuthEndpointLogicTests
         {
             { "Features:EnableUserRegistration", "false" }
         };
-        _configuration = new ConfigurationBuilder()
+        var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)
             .Build();
 
-        var registrationEnabled = _configuration.GetValue<bool>("Features:EnableUserRegistration", true);
+        var registrationEnabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
 
         // Act & Assert
         registrationEnabled.ShouldBeFalse();
@@ -113,7 +112,7 @@ public class AuthEndpointLogicTests
         {
             { "Features:EnableUserRegistration", "true" }
         };
-        _configuration = new ConfigurationBuilder()
+        var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)
             .Build();
 
@@ -126,7 +125,7 @@ public class AuthEndpointLogicTests
                     new RegisterResponse("user-123", email),
                     "/api/users/user-123")));
 
-        var registrationEnabled = _configuration.GetValue<bool>("Features:EnableUserRegistration", true);
+        var registrationEnabled = configuration.GetValue<bool>("Features:EnableUserRegistration", true);
 
         // Act
         registrationEnabled.ShouldBeTrue();
