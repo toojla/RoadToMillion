@@ -14,7 +14,17 @@ public record PortfolioSummary(
     decimal RemainingAmount,
     decimal ProgressPercentage,
     decimal PensionTotal,
-    List<GroupSummary> Groups);
+    List<GroupSummary> Groups,
+    DateOnly? CurrentAsOfDate = null,
+    DateOnly? PreviousAsOfDate = null,
+    decimal? PreviousTotal = null,
+    decimal? ChangeAmount = null,
+    decimal? ChangePercentage = null,
+    DateOnly? PensionAsOfDate = null,
+    DateOnly? PreviousPensionAsOfDate = null,
+    decimal? PreviousPensionTotal = null,
+    decimal? PensionChangeAmount = null,
+    decimal? PensionChangePercentage = null);
 
 public record AccountGroupResponse(int Id, string Name, decimal CurrentTotal);
 

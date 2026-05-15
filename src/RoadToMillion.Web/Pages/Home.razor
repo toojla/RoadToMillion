@@ -41,7 +41,16 @@ else
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">Current Total</h5>
-            <p class="display-5">@summary.CurrentTotal.ToString("N0") SEK</p>
+            <p class="display-5 d-flex align-items-center gap-2 flex-wrap mb-2">
+                <span>@summary.CurrentTotal.ToString("N0") SEK</span>
+                @if (summary.ChangePercentage is { } pct)
+                {
+                    var s = DeltaStyle(pct);
+                    <span class="badge fs-6 @s.Css">
+                        <i class="bi @s.Icon me-1"></i>@($"{s.Sign}{pct:F2}%")
+                    </span>
+                }
+            </p>
             <div class="progress mb-2" style="height: 24px;">
                 <div class="progress-bar bg-success" role="progressbar"
                      style="width: @summary.ProgressPercentage%"
@@ -49,15 +58,52 @@ else
                     @summary.ProgressPercentage.ToString("F1")%
                 </div>
             </div>
-            <p class="text-muted">
+            <p class="text-muted mb-1">
                 @summary.RemainingAmount.ToString("N0") SEK remaining to reach
                 @summary.GoalAmount.ToString("N0") SEK
             </p>
+            @if (summary.CurrentAsOfDate is { } asOf)
+            {
+                <p class="text-muted small mb-1">
+                    As of @asOf.ToString("yyyy-MM-dd")
+                    @if (summary.PreviousAsOfDate is { } prev)
+                    {
+                        <span> · compared to @prev.ToString("yyyy-MM-dd")</span>
+                        @if (summary.ChangeAmount is { } amt)
+                        {
+                            <span> (@(amt >= 0 ? "+" : "")@amt.ToString("N0") SEK)</span>
+                        }
+                    }
+                </p>
+            }
             @if (summary.PensionTotal > 0)
             {
-                <p class="text-muted mb-0">
+                <p class="text-muted mb-0 d-flex align-items-center gap-2 flex-wrap">
                     <small>Service pension (tracked separately): @summary.PensionTotal.ToString("N0") SEK</small>
+                    @if (summary.PensionChangePercentage is { } ppct)
+                    {
+                        var ps = DeltaStyle(ppct);
+                        <span class="badge @ps.Css">
+                            <i class="bi @ps.Icon me-1"></i>@($"{ps.Sign}{ppct:F2}%")
+                        </span>
+                    }
                 </p>
+                @if (summary.PensionAsOfDate is { } pAsOf)
+                {
+                    <p class="text-muted small mb-0">
+                        <small>
+                            As of @pAsOf.ToString("yyyy-MM-dd")
+                            @if (summary.PreviousPensionAsOfDate is { } pPrev)
+                            {
+                                <span> · compared to @pPrev.ToString("yyyy-MM-dd")</span>
+                                @if (summary.PensionChangeAmount is { } pAmt)
+                                {
+                                    <span> (@(pAmt >= 0 ? "+" : "")@pAmt.ToString("N0") SEK)</span>
+                                }
+                            }
+                        </small>
+                    </p>
+                }
             }
         </div>
     </div>
@@ -159,5 +205,10 @@ else
             _ => summary.Groups.OrderByDescending(g => g.CurrentTotal)
         };
     }
+
+    private static (string Css, string Icon, string Sign) DeltaStyle(decimal change) =>
+        change >= 0
+            ? ("text-bg-success", "bi-arrow-up", "+")
+            : ("text-bg-danger",  "bi-arrow-down", "");
 }
 
